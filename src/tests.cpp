@@ -70,13 +70,30 @@ void test_get_jerk_minimizing_trajectory_coefficients_complex()
 
 }
 
+
+void test_evaluate_polynomial_linear()
+{
+    vector<double> coefficients {1.0, 2.5} ;
+    assert(6.0 == evaluate_polynomial(coefficients, 2.0)) ;
+}
+
+
+void test_evaluate_polynomial_square()
+{
+    vector<double> coefficients {1.0, 2.5, -0.5} ;
+    assert(-11.0 == evaluate_polynomial(coefficients, -3.0)) ;
+}
+
+
 int main()
 {
     test_get_jerk_minimizing_trajectory_coefficients_simple() ;
     test_get_jerk_minimizing_trajectory_coefficients_medium() ;
     test_get_jerk_minimizing_trajectory_coefficients_complex() ;
 
-    std::cout << "All tests passed" << std::endl ;
+    test_evaluate_polynomial_linear() ;
+    test_evaluate_polynomial_square() ;
 
+    std::cout << "All tests passed" << std::endl ;
 }
 
