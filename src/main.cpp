@@ -5,6 +5,8 @@
 #include <iostream>
 #include <thread>
 #include <vector>
+#include <chrono>
+
 #include "Eigen-3.3/Eigen/Core"
 #include "Eigen-3.3/Eigen/QR"
 #include "json.hpp"
@@ -32,6 +34,11 @@ string hasData(string s) {
   return "";
 }
 
+
+// So we can keep track of acceleration
+std::chrono::time_point<std::chrono::system_clock> previous_update_time = std::chrono::system_clock::now();
+std::chrono::time_point<std::chrono::system_clock> previous_trajectory_generation_time = previous_update_time ;
+double previous_speed = 0 ;
 
 
 int main()
@@ -110,6 +117,8 @@ int main()
                     double car_yaw = j[1]["yaw"];
                     double car_speed = j[1]["speed"];
 
+                    double car_speed_in_ms = 0.44704 * car_speed ;
+
                     // Previous path data given to the Planner
                     auto previous_path_x = j[1]["previous_path_x"];
                     auto previous_path_y = j[1]["previous_path_y"];
@@ -122,11 +131,43 @@ int main()
 
                     json msgJson;
 
-                    auto trajectory = get_lane_keeping_trajectory(
-                        car_s, car_d, car_speed, map_waypoints_s, map_waypoints_x, map_waypoints_y) ;
+                    std::chrono::time_point<std::chrono::system_clock> current_time = std::chrono::system_clock::now();
 
-                    vector<double> next_x_vals = trajectory[0] ;
-                    vector<double> next_y_vals = trajectory[1] ;
+                    std::chrono::duration<double> time_since_last_trajectory_generation =
+                        current_time - previous_trajectory_generation_time ;
+
+                    int update_steps_per_second = 50 ;
+
+                    vector<double> next_x_vals ;
+                    vector<double> next_y_vals ;
+
+                    // Check if we can just reuse already computed trajectory
+                    if(previous_path_x.size() > update_steps_per_second and
+                        time_since_last_trajectory_generation.count() > 1.0)
+                    {
+                        for(int index = 0 ; index < previous_path_x.size() ; ++index)
+                        {
+                            next_x_vals.push_back(previous_path_x[index]) ;
+                            next_y_vals.push_back(previous_path_y[index]) ;
+                        }
+                    }
+                    else // We will compute a new trajectory
+                    {
+                        std::chrono::duration<double> elapsed_seconds = current_time - previous_update_time;
+
+                        double car_acceleration = (car_speed_in_ms - previous_speed) / elapsed_seconds.count() ;
+
+                        previous_update_time = current_time ;
+                        previous_speed = car_speed_in_ms ;
+
+                        auto trajectory = get_jerk_minimizing_lane_keeping_trajectory(
+                            car_s, car_d, car_speed_in_ms, car_acceleration,
+                            map_waypoints_s, map_waypoints_x, map_waypoints_y) ;
+
+                        next_x_vals = trajectory[0] ;
+                        next_y_vals = trajectory[1] ;
+                    }
+
 
                     // TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
                     msgJson["next_x"] = next_x_vals;

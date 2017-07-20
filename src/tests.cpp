@@ -56,7 +56,7 @@ void test_get_jerk_minimizing_trajectory_coefficients_complex()
     vector<double> final_state = {-30.0, -20.0, -4.0} ;
     double time = 5.0 ;
 
-    vector<double> expected {5.0, 10.0, 2.0, -3.0,0.64,-0.0432} ;
+    vector<double> expected {5.0, 10.0, 1.0, -3.0,0.64,-0.0432} ;
 
     vector<double> actual = get_jerk_minimizing_trajectory_coefficients(
         initial_state, final_state, time) ;

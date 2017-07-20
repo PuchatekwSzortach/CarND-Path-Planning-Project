@@ -197,24 +197,21 @@ vector<double> get_jerk_minimizing_trajectory_coefficients(
 
     Eigen::MatrixXd time_matrix = Eigen::MatrixXd(3, 3);
 
-    double time_square = time * time ;
-    double time_cubic = time_square * time ;
-
 	time_matrix <<
-	    time_cubic, time_cubic * time, time_cubic * time_square,
-        3.0 * time_square, 4.0 * time_cubic, 5.0 * time_cubic * time,
-        6.0 * time, 12.0 * time_square, 20.0 * time_cubic ;
+	    std::pow(time, 3.0), std::pow(time, 4.0), std::pow(time, 5.0),
+        3.0 * std::pow(time, 2.0), 4.0 * std::pow(time, 3.0), 5.0 * std::pow(time, 4.0),
+        6.0 * time, 12.0 * std::pow(time, 2.0), 20.0 * std::pow(time, 3.0) ;
 
 	Eigen::MatrixXd boundary_conditions = Eigen::MatrixXd(3,1);
 
 	boundary_conditions <<
-	    final_state[0] - (initial_state[0] + (initial_state[1] * time) + (0.5 * initial_state[2] * time_square)),
+	    final_state[0] - (initial_state[0] + (initial_state[1] * time) + (0.5 * initial_state[2] * std::pow(time, 2.0))),
         final_state[1] - (initial_state[1] + (initial_state[2] * time)),
         final_state[2] - initial_state[2];
 
     Eigen::MatrixXd coefficients_matrix = time_matrix.inverse() * boundary_conditions;
 
-    vector<double> coefficients = {initial_state[0], initial_state[1], initial_state[2]} ;
+    vector<double> coefficients = {initial_state[0], initial_state[1], 0.5 * initial_state[2]} ;
 
     for(int index = 0; index < coefficients_matrix.size(); index++)
 	{
@@ -228,15 +225,28 @@ vector<double> get_jerk_minimizing_trajectory_coefficients(
 double evaluate_polynomial(vector<double> coefficients, double x)
 {
     double y = coefficients[0] ;
-    double x_to_power = 1 ;
 
     for(int index = 1 ; index < coefficients.size() ; ++index)
     {
-        x_to_power *= x ;
-        y += coefficients[index] * x_to_power ;
+
+        y += coefficients[index] * std::pow(x, double(index)) ;
     }
 
     return y ;
+}
+
+
+vector<double> evaluate_polynomial_over_vector(vector<double> coefficients, vector<double> x_values)
+{
+    vector<double> y_values ;
+
+    for(int index = 0 ; index < x_values.size() ; ++index)
+    {
+        double y = evaluate_polynomial(coefficients, x_values[index]) ;
+        y_values.push_back(y) ;
+    }
+
+    return y_values ;
 }
 
 
@@ -260,11 +270,11 @@ vector<vector<double>> get_lane_keeping_trajectory(
 
     for (double index = 0; index < steps ; ++index)
     {
-    double s = car_s + (index * s_delta / steps) ;
-    double d = car_d + (index * d_delta / steps) ;
+        double s = car_s + (index * s_delta / steps) ;
+        double d = car_d + (index * d_delta / steps) ;
 
-    s_trajectory.push_back(s) ;
-    d_trajectory.push_back(d) ;
+        s_trajectory.push_back(s) ;
+        d_trajectory.push_back(d) ;
     }
 
     auto xy_trajectory = convert_frenet_trajectory_to_cartesian_trajectory(
@@ -276,13 +286,15 @@ vector<vector<double>> get_lane_keeping_trajectory(
 
 
 vector<vector<double>> get_jerk_minimizing_lane_keeping_trajectory(
-    double car_s, double car_d, double car_speed,
+    double car_s, double car_d, double car_speed, double car_acceleration,
     vector<double> maps_s, vector<double> maps_x, vector<double> maps_y)
 {
     vector<double> initial_s_state {car_s, car_speed, 0.0} ;
 
-    double time_delta = 1.0 ;
-    double target_speed = 22.0 ;
+    double steps_per_second = 50 ;
+    double time_delta = 10.0 ;
+    double target_speed = 20.0 ;
+
     double target_s = car_s + (target_speed * time_delta);
 
     vector<double> final_s_state {target_s, target_speed, 0.0} ;
@@ -290,7 +302,7 @@ vector<vector<double>> get_jerk_minimizing_lane_keeping_trajectory(
     auto s_coefficients = get_jerk_minimizing_trajectory_coefficients(
         initial_s_state, final_s_state, time_delta) ;
 
-    double target_d = 6;
+    double target_d = 6.0 ;
 
     vector<double> initial_d_state {car_d, 0.0, 0.0} ;
     vector<double> final_d_state {target_d, 0.0, 0.0} ;
@@ -298,8 +310,33 @@ vector<vector<double>> get_jerk_minimizing_lane_keeping_trajectory(
     auto d_coefficients = get_jerk_minimizing_trajectory_coefficients(
         initial_d_state, final_d_state, time_delta) ;
 
-    vector<vector<double>> trajectory ;
-    return trajectory ;
+    vector<double> time_steps ;
+    double time_instant = 0 ;
+
+    while(time_instant <= time_delta)
+    {
+        time_steps.push_back(time_instant) ;
+        time_instant += 1.0 / steps_per_second ;
+    }
+
+    auto s_trajectory = evaluate_polynomial_over_vector(s_coefficients, time_steps) ;
+    auto d_trajectory = evaluate_polynomial_over_vector(d_coefficients, time_steps) ;
+
+    auto xy_trajectory = convert_frenet_trajectory_to_cartesian_trajectory(
+        s_trajectory, d_trajectory, maps_s, maps_x, maps_y) ;
+
+//    std::cout << "\n\nStart state: " << car_s << ", " << car_d << std::endl ;
+//    std::cout << "Target state: " << target_s << ", " << target_d << std::endl ;
+//    std::cout << "Time frame: " << time_delta << std::endl ;
+//
+//    std::cout << "Intermediate steps: " << std::endl ;
+//
+//    for(int index = 0 ; index < s_trajectory.size() ; index += 10)
+//    {
+//        std::cout << s_trajectory[index] << ", " << d_trajectory[index] << std::endl ;
+//    }
+
+    return xy_trajectory ;
 
 }
 
