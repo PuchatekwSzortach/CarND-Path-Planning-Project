@@ -289,7 +289,9 @@ vector<vector<double>> get_jerk_minimizing_lane_keeping_trajectory(
     double car_s, double car_d, double car_speed, double car_acceleration,
     vector<double> maps_s, vector<double> maps_x, vector<double> maps_y)
 {
-    vector<double> initial_s_state {car_s, car_speed, 0.0} ;
+    std::cout << "Recomputing trajectory" << std::endl ;
+
+    vector<double> initial_s_state {car_s, car_speed, car_acceleration} ;
 
     double steps_per_second = 50 ;
     double time_delta = 10.0 ;
