@@ -135,4 +135,31 @@ vector<double> getXY(double s, double d, vector<double> maps_s, vector<double> m
 }
 
 
+vector<vector<double>> get_trajectory(
+  double car_x, double car_y, double car_s, double car_d, double car_yaw, double car_speed,
+  vector<double> maps_x, vector<double> maps_y)
+{
+  vector<double> next_x_vals;
+  vector<double> next_y_vals;
+
+  // Get index of closest point
+  int waypoint_index = NextWaypoint(car_x, car_y, car_yaw, maps_x, maps_y) ;
+
+  // Interpolate from current position to waypoint in 100 steps
+  double interpolation_steps_count = 100 ;
+
+  for(double index = 0 ; index < interpolation_steps_count ; ++index)
+  {
+    double x = car_x + (index * (maps_x[waypoint_index] - car_x) / interpolation_steps_count) ;
+    double y = car_y + (index * (maps_y[waypoint_index] - car_y) / interpolation_steps_count) ;
+
+    next_x_vals.push_back(x) ;
+    next_y_vals.push_back(y) ;
+  }
+
+  vector<vector<double>> trajectory {next_x_vals, next_y_vals} ;
+  return trajectory ;
+}
+
+
 #endif //PATH_PLANNING_PROCESSING_H

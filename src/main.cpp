@@ -122,24 +122,12 @@ int main()
 
                     json msgJson;
 
-                    vector<double> next_x_vals;
-                    vector<double> next_y_vals;
 
-                    // Get index of closest point
-                    int waypoint_index = NextWaypoint(car_x, car_y, car_yaw, map_waypoints_x, map_waypoints_y) ;
+                    auto trajectory = get_trajectory(
+                      car_x, car_y, car_s, car_d, car_yaw, car_speed, map_waypoints_x, map_waypoints_y) ;
 
-                    // Interpolate from current position to waypoint in 100 steps
-                    double interpolation_steps_count = 100 ;
-
-                    for(double index = 0 ; index < interpolation_steps_count ; ++index)
-                    {
-                      double x = car_x + (index * (map_waypoints_x[waypoint_index] - car_x) / interpolation_steps_count) ;
-                      double y = car_y + (index * (map_waypoints_y[waypoint_index] - car_y) / interpolation_steps_count) ;
-
-                      next_x_vals.push_back(x) ;
-                      next_y_vals.push_back(y) ;
-                    }
-
+                    vector<double> next_x_vals = trajectory[0] ;
+                    vector<double> next_y_vals = trajectory[1] ;
 
                     // TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
                     msgJson["next_x"] = next_x_vals;
