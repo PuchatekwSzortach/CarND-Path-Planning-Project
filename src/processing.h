@@ -6,7 +6,11 @@
 #define PATH_PLANNING_PROCESSING_H
 
 #include <vector>
-#include <math.h>
+#include <cmath>
+
+#include "Eigen-3.3/Eigen/Core"
+#include "Eigen-3.3/Eigen/QR"
+#include "Eigen-3.3/Eigen/Dense"
 
 using namespace std ;
 
@@ -220,5 +224,38 @@ vector<vector<double>> get_lane_keeping_trajectory(
 
 }
 
+
+vector<double> get_jerk_minimizing_trajectory_coefficients(
+    vector<double> initial_state, vector<double> final_state, double time)
+{
+
+    Eigen::MatrixXd time_matrix = Eigen::MatrixXd(3, 3);
+
+    double time_square = time * time ;
+    double time_cubic = time_square * time ;
+
+	time_matrix <<
+	    time_cubic, time_cubic * time, time_cubic * time_square,
+        3.0 * time_square, 4.0 * time_cubic, 5.0 * time_cubic * time,
+        6.0 * time, 12.0 * time_square, 20.0 * time_cubic ;
+
+	Eigen::MatrixXd boundary_conditions = Eigen::MatrixXd(3,1);
+
+	boundary_conditions <<
+	    final_state[0] - (initial_state[0] + (initial_state[1] * time) + (0.5 * initial_state[2] * time_square)),
+        final_state[1] - (initial_state[1] + (initial_state[2] * time)),
+        final_state[2] - initial_state[2];
+
+    Eigen::MatrixXd coefficients_matrix = time_matrix.inverse() * boundary_conditions;
+
+    vector<double> coefficients = {initial_state[0], initial_state[1], initial_state[2]} ;
+
+    for(int index = 0; index < coefficients_matrix.size(); index++)
+	{
+	    coefficients.push_back(coefficients_matrix.data()[index]);
+	}
+
+    return coefficients ;
+}
 
 #endif //PATH_PLANNING_PROCESSING_H

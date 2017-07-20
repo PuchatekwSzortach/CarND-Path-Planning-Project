@@ -8,6 +8,7 @@ set(CXX_FLAGS "-Wall")
 set(CMAKE_CXX_FLAGS, "${CXX_FLAGS}")
 
 set(sources src/main.cpp src/processing.h)
+set(test_sources src/tests.cpp src/processing.h)
 
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") 
@@ -22,5 +23,7 @@ endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
 
 add_executable(path_planning ${sources})
+add_executable(tests ${test_sources})
 
 target_link_libraries(path_planning z ssl uv uWS)
+target_link_libraries(tests z ssl uv uWS)
