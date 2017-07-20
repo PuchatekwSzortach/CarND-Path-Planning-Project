@@ -122,9 +122,11 @@ int main()
 
                     json msgJson;
 
+//                    auto trajectory = get_trajectory(
+//                      car_x, car_y, car_s, car_d, car_yaw, car_speed, map_waypoints_x, map_waypoints_y) ;
 
-                    auto trajectory = get_trajectory(
-                      car_x, car_y, car_s, car_d, car_yaw, car_speed, map_waypoints_x, map_waypoints_y) ;
+                    auto trajectory = get_lane_keeping_trajectory(
+                        car_s, car_d, car_speed, map_waypoints_s, map_waypoints_x, map_waypoints_y) ;
 
                     vector<double> next_x_vals = trajectory[0] ;
                     vector<double> next_y_vals = trajectory[1] ;

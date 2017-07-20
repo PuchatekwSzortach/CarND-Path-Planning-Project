@@ -14,13 +14,17 @@ using namespace std ;
 // For converting back and forth between radians and degrees.
 constexpr double pi() { return M_PI; }
 
+
 double deg2rad(double x) { return x * pi() / 180; }
 
+
 double rad2deg(double x) { return x * 180 / pi(); }
+
 
 double distance(double x1, double y1, double x2, double y2) {
   return sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
 }
+
 
 int ClosestWaypoint(double x, double y, vector<double> maps_x, vector<double> maps_y) {
 
@@ -42,6 +46,7 @@ int ClosestWaypoint(double x, double y, vector<double> maps_x, vector<double> ma
 
 }
 
+
 int NextWaypoint(double x, double y, double theta, vector<double> maps_x, vector<double> maps_y) {
 
   int closestWaypoint = ClosestWaypoint(x, y, maps_x, maps_y);
@@ -60,7 +65,6 @@ int NextWaypoint(double x, double y, double theta, vector<double> maps_x, vector
   return closestWaypoint;
 
 }
-
 
 
 // Transform from Cartesian x,y coordinates to Frenet s,d coordinates
@@ -107,6 +111,7 @@ vector<double> getFrenet(double x, double y, double theta, vector<double> maps_x
   return {frenet_s, frenet_d};
 
 }
+
 
 // Transform from Frenet s,d coordinates to Cartesian x,y
 vector<double> getXY(double s, double d, vector<double> maps_s, vector<double> maps_x, vector<double> maps_y) {
@@ -159,6 +164,60 @@ vector<vector<double>> get_trajectory(
 
   vector<vector<double>> trajectory {next_x_vals, next_y_vals} ;
   return trajectory ;
+}
+
+vector<vector<double>> convert_frenet_trajectory_to_cartesian_trajectory(
+  vector<double> s_trajectory, vector<double> d_trajectory,
+  vector<double> maps_s, vector<double> maps_x, vector<double> maps_y)
+{
+  vector<double> x_trajectory ;
+  vector<double> y_trajectory ;
+
+  for(int index = 0 ; index < s_trajectory.size() ; ++index)
+  {
+    auto xy = getXY(s_trajectory[index], d_trajectory[index], maps_s, maps_x, maps_y) ;
+
+    x_trajectory.push_back(xy[0]) ;
+    y_trajectory.push_back(xy[1]) ;
+  }
+
+  vector<vector<double>> xy_trajectory {x_trajectory, y_trajectory} ;
+  return xy_trajectory ;
+
+};
+
+vector<vector<double>> get_lane_keeping_trajectory(
+    double car_s, double car_d, double car_speed,
+    vector<double> maps_s, vector<double> maps_x, vector<double> maps_y) {
+
+    // For now just try to travel at 20 metres per second
+    double target_s = car_s + 20;
+
+    // We want to be in the middle of the second lane
+    double target_d = 6;
+
+    vector<double> s_trajectory;
+    vector<double> d_trajectory;
+
+    double s_delta = target_s - car_s ;
+    double d_delta = target_d - car_d ;
+
+    double steps = 50 ;
+
+    for (double index = 0; index < steps ; ++index)
+    {
+    double s = car_s + (index * s_delta / steps) ;
+    double d = car_d + (index * d_delta / steps) ;
+
+    s_trajectory.push_back(s) ;
+    d_trajectory.push_back(d) ;
+    }
+
+    auto xy_trajectory = convert_frenet_trajectory_to_cartesian_trajectory(
+        s_trajectory, d_trajectory, maps_s, maps_x, maps_y) ;
+
+    return xy_trajectory ;
+
 }
 
 
