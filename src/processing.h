@@ -308,36 +308,20 @@ vector<double> get_initial_s_state(vector<double> &s_trajectory, double time_bet
     return initial_s_state ;
 }
 
-vector<double> get_initial_d_state(
-    vector<double> &previous_trajectory_x, vector<double> &previous_trajectory_y,
-    vector<double> &maps_x, vector<double> &maps_y, double time_between_steps)
+vector<double> get_initial_d_state(vector<double> &previous_d_trajectory, double time_between_steps)
 {
-    int size = previous_trajectory_x.size() ;
+    int size = previous_d_trajectory.size() ;
 
-    double last_x = previous_trajectory_x[size - 1] ;
-    double last_y = previous_trajectory_y[size - 1] ;
+    double last_d = previous_d_trajectory[size - 1] ;
+    double second_last_d = previous_d_trajectory[size - 2] ;
+    double third_last_d = previous_d_trajectory[size - 3] ;
 
-    double second_last_x = previous_trajectory_x[size - 2] ;
-    double second_last_y = previous_trajectory_y[size - 2] ;
-
-    double third_last_x = previous_trajectory_x[size - 3] ;
-    double third_last_y = previous_trajectory_y[size - 3] ;
-
-    double last_yaw = std::atan2(last_y, last_x) ;
-    double second_last_yaw = std::atan2(second_last_y, second_last_x) ;
-    double third_last_yaw = std::atan2(third_last_y, third_last_x) ;
-
-    auto last_sd = getFrenet(last_x, last_y, last_yaw, maps_x, maps_y) ;
-    auto second_last_sd = getFrenet(second_last_x, second_last_y, second_last_yaw, maps_x, maps_y) ;
-    auto third_last_sd = getFrenet(third_last_x, third_last_y, third_last_yaw, maps_x, maps_y) ;
-
-    double last_d_speed = (last_sd[1] - second_last_sd[1]) / time_between_steps ;
-    double second_last_d_speed = (second_last_sd[1] - third_last_sd[1]) / time_between_steps ;
+    double last_d_speed = (last_d - second_last_d) / time_between_steps ;
+    double second_last_d_speed = (second_last_d - third_last_d) / time_between_steps ;
 
     double last_d_acceleration = (last_d_speed - second_last_d_speed) / time_between_steps ;
 
-    vector<double> initial_d_state {last_sd[1], last_d_speed, last_d_acceleration} ;
-
+    vector<double> initial_d_state {last_d, last_d_speed, last_d_acceleration} ;
     return initial_d_state ;
 }
 
@@ -353,9 +337,10 @@ vector<double> get_final_s_state(vector<double> &s_trajectory, double time_betwe
     double ideal_target_speed = 20 ;
     double target_acceleration = (ideal_target_speed - initial_speed) / time_horizon ;
 
+    std::cout << "Previous trajectory acceleration was " << initial_acceleration << std::endl ;
     std::cout << "Initial target acceleration: " << target_acceleration << std::endl ;
 
-    double max_acceleration = 2.0 ;
+    double max_acceleration = 4.0 ;
     // If acceleration is too large, limit it
     while (std::abs(target_acceleration) > max_acceleration)
     {
@@ -364,11 +349,11 @@ vector<double> get_final_s_state(vector<double> &s_trajectory, double time_betwe
 
     std::cout << "After max acceleration check: " << target_acceleration << std::endl ;
 
-    double max_jerk = 2.0 ;
+    double max_jerk = 8.0 ;
     // If jerk would be too large, limit it
     while(std::abs(target_acceleration - initial_acceleration) / time_horizon > max_jerk)
     {
-        target_acceleration = 0.5 * (target_acceleration + initial_acceleration) ;
+        target_acceleration = (0.8 * target_acceleration) + (0.2 * initial_acceleration) ;
     }
 
     std::cout << "After max jerk check: " << target_acceleration << std::endl ;
@@ -404,20 +389,10 @@ vector<vector<double>> get_jerk_minimizing_trajectory(
         }
     }
 
-    double steps_per_second = 50.0 ;
-    double time_between_steps = 1.0 / steps_per_second ;
-
-    double time_instant = 0 ;
-    vector<double> previous_trajectory_time_steps ;
-
-    for(int index = 0 ; index < previous_trajectory_x.size() ; ++index)
-    {
-        previous_trajectory_time_steps.push_back(time_instant) ;
-        time_instant += 1.0 / steps_per_second ;
-    }
-
-    vector<double> s_trajectory ;
-    vector<double> d_trajectory ;
+    // previous xy trajectories occasionally have discontinuities due to error in
+    // Cartesian - Frenet coordinate systems translations. We will fix this later in Frenet space
+    vector<double> crude_s_trajectory ;
+    vector<double> crude_d_trajectory ;
 
     // Initialize trajectory with previous steps in frenet coordinates
     for(int index = 0 ; index < previous_trajectory_x.size() ; ++index)
@@ -428,23 +403,34 @@ vector<vector<double>> get_jerk_minimizing_trajectory(
         double theta = std::atan2(y, x) ;
         auto sd = getFrenet(x, y, theta, maps_x, maps_y) ;
 
-        s_trajectory.push_back(sd[0]) ;
-        d_trajectory.push_back(sd[1]) ;
+        crude_s_trajectory.push_back(sd[0]) ;
+        crude_d_trajectory.push_back(sd[1]) ;
     }
 
-    auto smooth_s_trajectory = get_smoothed_trajectory(previous_trajectory_time_steps, s_trajectory) ;
-    auto smooth_d_trajectory = get_smoothed_trajectory(previous_trajectory_time_steps, d_trajectory) ;
+    double steps_per_second = 50.0 ;
+    double time_per_step = 1.0 / steps_per_second ;
 
-    double time_horizon = 4.0 ;
+    double time_instant = 0 ;
+    vector<double> previous_trajectory_time_steps ;
 
-    vector<double> initial_s_state = get_initial_s_state(smooth_s_trajectory, time_between_steps) ;
-    vector<double> final_s_state = get_final_s_state(smooth_s_trajectory, time_between_steps, time_horizon) ;
+    for(int index = 0 ; index < previous_trajectory_x.size() ; ++index)
+    {
+        previous_trajectory_time_steps.push_back(time_instant) ;
+        time_instant += time_per_step ;
+    }
+
+    auto s_trajectory = get_smoothed_trajectory(previous_trajectory_time_steps, crude_s_trajectory) ;
+    auto d_trajectory = get_smoothed_trajectory(previous_trajectory_time_steps, crude_d_trajectory) ;
+
+    double time_horizon = 2.0 ;
+
+    vector<double> initial_s_state = get_initial_s_state(s_trajectory, time_per_step) ;
+    vector<double> final_s_state = get_final_s_state(s_trajectory, time_per_step, time_horizon) ;
 
 //    std::cout << "Initial s state: " << initial_s_state[0] << ", " << initial_s_state[1] << ", " << initial_s_state[2] << std::endl ;
 //    std::cout << "Final s state: " << final_s_state[0] << ", " << final_s_state[1] << ", " << final_s_state[2] << std::endl ;
 
-    vector<double> initial_d_state = get_initial_d_state(
-        previous_trajectory_x, previous_trajectory_y, maps_x, maps_y, time_between_steps) ;
+    vector<double> initial_d_state = get_initial_d_state(d_trajectory, time_per_step) ;
 
     double target_d = 6.0 ;
     vector<double> final_d_state = {target_d, 0.0, 0.0} ;
@@ -455,46 +441,44 @@ vector<vector<double>> get_jerk_minimizing_trajectory(
     auto d_coefficients = get_jerk_minimizing_trajectory_coefficients(
         initial_d_state, final_d_state, time_horizon) ;
 
-    vector<double> time_steps ;
+    vector<double> added_time_steps ;
 
     // End of previous path already includes a point at our initial state, so add new trajectories
     // from one instant after that
-    time_instant = 1.0 / steps_per_second ;
+    time_instant = time_per_step ;
 
     while(time_instant <= time_horizon)
     {
-        time_steps.push_back(time_instant) ;
-        time_instant += 1.0 / steps_per_second ;
+        added_time_steps.push_back(time_instant) ;
+        time_instant += time_per_step ;
     }
 
-    auto added_s_trajectory = evaluate_polynomial_over_vector(s_coefficients, time_steps) ;
-    auto added_d_trajectory = evaluate_polynomial_over_vector(d_coefficients, time_steps) ;
+    auto added_s_trajectory = evaluate_polynomial_over_vector(s_coefficients, added_time_steps) ;
+    auto added_d_trajectory = evaluate_polynomial_over_vector(d_coefficients, added_time_steps) ;
 
     for(int index = 0 ; index < added_s_trajectory.size() ; ++index)
     {
-        smooth_s_trajectory.push_back(added_s_trajectory[index]) ;
-        smooth_d_trajectory.push_back(added_d_trajectory[index]) ;
+        s_trajectory.push_back(added_s_trajectory[index]) ;
+        d_trajectory.push_back(added_d_trajectory[index]) ;
     }
 
     auto xy_trajectory = convert_frenet_trajectory_to_cartesian_trajectory(
-        smooth_s_trajectory, smooth_d_trajectory, maps_s, maps_x, maps_y) ;
+        s_trajectory, d_trajectory, maps_s, maps_x, maps_y) ;
 
     vector<double> complete_time_steps ;
     time_instant = 0 ;
 
-    for(int index = 0 ; index < smooth_s_trajectory.size() ; ++index)
+    for(int index = 0 ; index < s_trajectory.size() ; ++index)
     {
         complete_time_steps.push_back(time_instant) ;
-        time_instant += 1.0 / steps_per_second ;
+        time_instant += time_per_step ;
     }
 
     auto smooth_x_trajectory = get_smoothed_trajectory(complete_time_steps, xy_trajectory[0]) ;
     auto smooth_y_trajectory = get_smoothed_trajectory(complete_time_steps, xy_trajectory[1]) ;
 
     vector<vector<double>> smooth_xy_trajectory {smooth_x_trajectory, smooth_y_trajectory} ;
-
     return smooth_xy_trajectory ;
-
 }
 
 
