@@ -85,82 +85,6 @@ void test_evaluate_polynomial_square()
 }
 
 
-void test_get_previous_trajectory_final_speed_horizontal_motion_only()
-{
-    vector<double> x_trajectory {1.0, 5.0} ;
-    vector<double> y_trajectory {1.0, 1.0} ;
-    double time_between_steps = 0.2 ;
-
-    double expected = 20.0 ;
-    double actual = get_previous_trajectory_final_speed(x_trajectory, y_trajectory, time_between_steps) ;
-
-    assert(expected == actual) ;
-}
-
-void test_get_previous_trajectory_final_speed_vertical_motion_only()
-{
-    vector<double> x_trajectory {1.0, 1.0} ;
-    vector<double> y_trajectory {1.0, 7.0} ;
-    double time_between_steps = 0.4 ;
-
-    double expected = 15.0 ;
-    double actual = get_previous_trajectory_final_speed(x_trajectory, y_trajectory, time_between_steps) ;
-
-    assert(expected == actual) ;
-}
-
-
-void test_get_previous_trajectory_final_speed_generic_motion()
-{
-    vector<double> x_trajectory {1.0, 5.0} ;
-    vector<double> y_trajectory {1.0, 3.0} ;
-    double time_between_steps = 0.5 ;
-
-    double expected = 8.94427 ;
-    double actual = get_previous_trajectory_final_speed(x_trajectory, y_trajectory, time_between_steps) ;
-
-    assert(std::abs(expected - actual) < 0.01) ;
-}
-
-
-void test_get_previous_trajectory_final_acceleration_horizontal_motion()
-{
-    vector<double> x_trajectory {1.0, 6.0, 16.0} ;
-    vector<double> y_trajectory {1.0, 1.0, 1.0} ;
-    double time_between_steps = 0.2 ;
-
-    double expected = 125.0 ;
-    double actual = get_previous_trajectory_final_acceleration(x_trajectory, y_trajectory, time_between_steps) ;
-
-    assert(std::abs(expected - actual) < 0.01) ;
-}
-
-
-void test_get_previous_trajectory_final_acceleration_vertical_motion()
-{
-    vector<double> x_trajectory {2.0, 2.0, 2.0} ;
-    vector<double> y_trajectory {4.0, 2.0, -4.0} ;
-    double time_between_steps = 0.5 ;
-
-    double expected = -16.0 ;
-    double actual = get_previous_trajectory_final_acceleration(x_trajectory, y_trajectory, time_between_steps) ;
-
-    assert(std::abs(expected - actual) < 0.01) ;
-}
-
-
-void test_get_previous_trajectory_final_acceleration_generic_motion()
-{
-    vector<double> x_trajectory {2.0, 8.0, 10.0} ;
-    vector<double> y_trajectory {4.0, 6.0, 16.0} ;
-    double time_between_steps = 0.5 ;
-
-    double expected = 15.492 ;
-    double actual = get_previous_trajectory_final_acceleration(x_trajectory, y_trajectory, time_between_steps) ;
-
-    assert(std::abs(expected - actual) < 0.01) ;
-}
-
 
 int main()
 {
@@ -170,12 +94,6 @@ int main()
 
     test_evaluate_polynomial_linear() ;
     test_evaluate_polynomial_square() ;
-
-    test_get_previous_trajectory_final_speed_horizontal_motion_only() ;
-    test_get_previous_trajectory_final_speed_vertical_motion_only() ;
-    test_get_previous_trajectory_final_speed_generic_motion() ;
-
-    test_get_previous_trajectory_final_acceleration_horizontal_motion() ;
 
     std::cout << "All tests passed" << std::endl ;
 }

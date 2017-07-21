@@ -35,12 +35,6 @@ string hasData(string s) {
 }
 
 
-// So we can keep track of acceleration
-std::chrono::time_point<std::chrono::system_clock> previous_speed_check_time = std::chrono::system_clock::now();
-std::chrono::time_point<std::chrono::system_clock> previous_trajectory_generation_time = previous_speed_check_time ;
-double previous_speed = 0 ;
-
-
 int main()
 {
 
@@ -134,19 +128,6 @@ int main()
 
                     json msgJson;
 
-                    std::chrono::time_point<std::chrono::system_clock> current_time = std::chrono::system_clock::now();
-
-                    std::chrono::duration<double> time_since_last_trajectory_generation =
-                        current_time - previous_trajectory_generation_time ;
-
-                    std::chrono::duration<double> time_since_last_speed_check =
-                        current_time - previous_speed_check_time ;
-
-                    double car_acceleration = (car_speed_in_ms - previous_speed) / time_since_last_speed_check.count() ;
-
-                    previous_speed = car_speed_in_ms ;
-                    previous_speed_check_time = current_time ;
-
                     int update_steps_per_second = 50 ;
 
                     vector<double> next_x_vals ;
@@ -157,15 +138,12 @@ int main()
 
                     if(should_recompute_trajectory)
                     {
-
                         auto trajectory = get_jerk_minimizing_trajectory(
-                            car_x, car_y, car_s, car_d, car_yaw, car_speed_in_ms, car_acceleration,
+                            car_x, car_y, car_s, car_d, car_yaw, car_speed_in_ms,
                             map_waypoints_s, map_waypoints_x, map_waypoints_y, previous_path_x, previous_path_y) ;
 
                         next_x_vals = trajectory[0] ;
                         next_y_vals = trajectory[1] ;
-
-                        previous_trajectory_generation_time = current_time ;
 
                     }
                     else // Reuse trajectory
