@@ -149,9 +149,30 @@ int main()
                     vector<double> next_x_vals ;
                     vector<double> next_y_vals ;
 
-                    // Check if we can just reuse already computed trajectory
-                    if(previous_path_x.size() > update_steps_per_second &&
-                        time_since_last_trajectory_generation.count() < 1.0)
+                    double min_trajectory_recompute_distance = 50.0 ;
+
+                    double remaining_trajectory_distance =
+                        get_cartesian_trajectory_distance(previous_path_x, previous_path_y) ;
+
+                    bool should_recompute_trajectory = remaining_trajectory_distance < min_trajectory_recompute_distance ;
+
+                    std::cout << "remaining_trajectory_distance: " << remaining_trajectory_distance << std::endl ;
+                    std::cout << "remaining_trajectory_distance points: " << previous_path_x.size() << std::endl ;
+
+                    if(should_recompute_trajectory)
+                    {
+                        auto trajectory = get_jerk_minimizing_trajectory(
+                            car_x, car_y, car_s, car_d, car_yaw, car_speed_in_ms, car_acceleration,
+                            map_waypoints_s, map_waypoints_x, map_waypoints_y, previous_path_x, previous_path_y) ;
+
+                        next_x_vals = trajectory[0] ;
+                        next_y_vals = trajectory[1] ;
+
+                        previous_trajectory_generation_time = current_time ;
+
+                        std::cout << "Trajectory size: " << next_x_vals.size() << std::endl ;
+                    }
+                    else // Reuse trajectory
                     {
                         for(int index = 0 ; index < previous_path_x.size() ; ++index)
                         {
@@ -159,19 +180,6 @@ int main()
                             next_y_vals.push_back(previous_path_y[index]) ;
                         }
                     }
-                    else // We will compute a new trajectory
-                    {
-
-                        auto trajectory = get_jerk_minimizing_lane_keeping_trajectory(
-                            car_s, car_d, car_speed_in_ms, car_acceleration,
-                            map_waypoints_s, map_waypoints_x, map_waypoints_y) ;
-
-                        next_x_vals = trajectory[0] ;
-                        next_y_vals = trajectory[1] ;
-
-                        previous_trajectory_generation_time = current_time ;
-                    }
-
 
                     // TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
                     msgJson["next_x"] = next_x_vals;
