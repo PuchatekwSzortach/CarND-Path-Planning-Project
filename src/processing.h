@@ -12,6 +12,7 @@
 #include "Eigen-3.3/Eigen/Core"
 #include "Eigen-3.3/Eigen/QR"
 #include "Eigen-3.3/Eigen/Dense"
+#include "spline.h"
 
 using namespace std ;
 
@@ -284,6 +285,94 @@ double get_cartesian_trajectory_distance(vector<double> trajectory_x, vector<dou
 }
 
 
+vector<double> get_smoothed_d_trajectory(vector<double> s_trajectory, vector<double> d_trajectory)
+{
+
+    tk::spline spline;
+    spline.set_points(s_trajectory, d_trajectory);
+
+    vector<double> smooth_d_trajectory ;
+
+    for(int index = 0 ; index < s_trajectory.size() ; ++index)
+    {
+        double smooth_d = spline(s_trajectory[index]) ;
+        smooth_d_trajectory.push_back(smooth_d) ;
+
+    }
+
+    return smooth_d_trajectory ;
+}
+
+
+vector<double> get_initial_s_state(
+    vector<double> previous_trajectory_x, vector<double> previous_trajectory_y,
+    double car_yaw_in_rad, vector<double> maps_x, vector<double> maps_y, double time_between_steps)
+{
+
+    auto frenet_sd = getFrenet(
+        previous_trajectory_x.back(), previous_trajectory_y.back(), car_yaw_in_rad, maps_x, maps_y) ;
+
+    double initial_s = frenet_sd[0] ;
+
+    double initial_car_speed = get_previous_trajectory_final_speed(
+        previous_trajectory_x, previous_trajectory_y, time_between_steps) ;
+
+    double initial_car_acceleration = get_previous_trajectory_final_acceleration(
+        previous_trajectory_x, previous_trajectory_y, time_between_steps) ;
+
+    vector<double> initial_s_state {initial_s, initial_car_speed, initial_car_acceleration} ;
+
+    return initial_s_state ;
+}
+
+
+vector<double> get_final_s_state(
+    vector<double> previous_trajectory_x, vector<double> previous_trajectory_y,
+    double car_yaw_in_rad, vector<double> maps_x, vector<double> maps_y,
+    double time_between_steps, double time_horizon)
+{
+    double ideal_target_speed = 20 ;
+
+    auto frenet_sd = getFrenet(
+        previous_trajectory_x.back(), previous_trajectory_y.back(), car_yaw_in_rad, maps_x, maps_y) ;
+
+    double initial_s = frenet_sd[0] ;
+
+    double initial_car_speed = get_previous_trajectory_final_speed(
+        previous_trajectory_x, previous_trajectory_y, time_between_steps) ;
+
+    double initial_car_acceleration = get_previous_trajectory_final_acceleration(
+        previous_trajectory_x, previous_trajectory_y, time_between_steps) ;
+
+    double target_acceleration = (ideal_target_speed - initial_car_speed) / time_horizon ;
+
+    double max_acceleration = 0.5 ;
+    // If acceleration is over 1m/s, limit it
+    while (std::abs(target_acceleration) > max_acceleration)
+    {
+        target_acceleration *= 0.9 ;
+    }
+
+    double max_jerk = 2.0 ;
+    // If jerk would be too large, limit it
+    while(std::abs(target_acceleration - initial_car_acceleration) / time_horizon > max_jerk)
+    {
+        target_acceleration = 0.5 * (target_acceleration + initial_car_acceleration) ;
+    }
+
+    // Now compute position and velocity of final state
+    double target_position =
+        initial_s + (initial_car_speed * time_horizon) +
+        (0.25 * (initial_car_acceleration + target_acceleration) * time_horizon * time_horizon) ;
+
+    double target_speed = initial_car_speed + (0.5 * (initial_car_acceleration + target_acceleration) * time_horizon) ;
+
+    vector<double> final_s_state {target_position, target_speed, target_acceleration} ;
+
+    return final_s_state ;
+}
+
+
 vector<vector<double>> get_jerk_minimizing_trajectory(
     double car_x, double car_y, double car_s, double car_d, double car_yaw, double car_speed, double car_acceleration,
     vector<double> maps_s, vector<double> maps_x, vector<double> maps_y,
@@ -317,49 +406,18 @@ vector<vector<double>> get_jerk_minimizing_trajectory(
 
     double car_yaw_in_rad = deg2rad(car_yaw) ;
 
-    // Get initial state as last state of previous path
-    // car_yaw might not be correct, but should be close to true value
-    auto frenet_sd = getFrenet(previous_trajectory_x.back(), previous_trajectory_y.back(), car_yaw_in_rad, maps_x, maps_y) ;
+    double time_horizon = 4.0 ;
 
-    double initial_s = frenet_sd[0] ;
+    vector<double> initial_s_state = get_initial_s_state(
+        previous_trajectory_x, previous_trajectory_y, car_yaw_in_rad, maps_x, maps_y, time_between_steps) ;
 
-    double initial_car_speed = get_previous_trajectory_final_speed(
-        previous_trajectory_x, previous_trajectory_y, time_between_steps) ;
-
-    double initial_car_acceleration = get_previous_trajectory_final_acceleration(
-        previous_trajectory_x, previous_trajectory_y, time_between_steps) ;
-
-    vector<double> initial_s_state {initial_s, initial_car_speed, initial_car_acceleration} ;
+    vector<double> final_s_state = get_final_s_state(
+        previous_trajectory_x, previous_trajectory_y, car_yaw_in_rad, maps_x, maps_y,
+        time_between_steps, time_horizon) ;
 
 
-    // Time span
-    double time_delta = 4.0 ;
-    double ideal_target_speed = 20 ;
-
-    double target_acceleration = (ideal_target_speed - initial_car_speed) / time_delta ;
-
-    // If acceleration is over 1m/s, limit it
-    while (std::abs(target_acceleration) > 1.0)
-    {
-        target_acceleration *= 0.9 ;
-    }
-
-
-    double max_jerk = 5.0 ;
-    // If jerk would be too large, limit it
-    while(std::abs(target_acceleration - initial_car_acceleration) / time_delta > max_jerk)
-    {
-        target_acceleration = 0.5 * (target_acceleration + initial_car_acceleration) ;
-    }
-
-    // Now compute position and velocity of final state
-    double target_position =
-        initial_s + (initial_car_speed * time_delta) +
-        (0.25 * (initial_car_acceleration + target_acceleration) * time_delta * time_delta) ;
-
-    double target_speed = initial_car_speed + (0.5 * (initial_car_acceleration + target_acceleration) * time_delta) ;
-
-    vector<double> final_s_state {target_position, target_speed, target_acceleration} ;
+    auto frenet_sd = getFrenet(
+        previous_trajectory_x.back(), previous_trajectory_y.back(), car_yaw_in_rad, maps_x, maps_y) ;
 
     // Initial d speed and acceleration are probably not quite correct
     vector<double> initial_d_state {frenet_sd[1], 0.0, 0.0} ;
@@ -368,15 +426,15 @@ vector<vector<double>> get_jerk_minimizing_trajectory(
     vector<double> final_d_state = {target_d, 0.0, 0.0} ;
 
     auto s_coefficients = get_jerk_minimizing_trajectory_coefficients(
-        initial_s_state, final_s_state, time_delta) ;
+        initial_s_state, final_s_state, time_horizon) ;
 
     auto d_coefficients = get_jerk_minimizing_trajectory_coefficients(
-        initial_d_state, final_d_state, time_delta) ;
+        initial_d_state, final_d_state, time_horizon) ;
 
     vector<double> time_steps ;
     double time_instant = 0 ;
 
-    while(time_instant <= time_delta)
+    while(time_instant <= time_horizon)
     {
         time_steps.push_back(time_instant) ;
         time_instant += 1.0 / steps_per_second ;

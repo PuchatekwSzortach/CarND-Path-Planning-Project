@@ -149,18 +149,12 @@ int main()
                     vector<double> next_x_vals ;
                     vector<double> next_y_vals ;
 
-                    double min_trajectory_recompute_distance = 50.0 ;
-
-                    double remaining_trajectory_distance =
-                        get_cartesian_trajectory_distance(previous_path_x, previous_path_y) ;
-
-                    bool should_recompute_trajectory = remaining_trajectory_distance < min_trajectory_recompute_distance ;
-
-                    std::cout << "remaining_trajectory_distance: " << remaining_trajectory_distance << std::endl ;
-                    std::cout << "remaining_trajectory_distance points: " << previous_path_x.size() << std::endl ;
+                    // Check if trajectory extends less than 1 sec into future
+                    bool should_recompute_trajectory = double(previous_path_x.size()) / update_steps_per_second < 1.0 ;
 
                     if(should_recompute_trajectory)
                     {
+
                         auto trajectory = get_jerk_minimizing_trajectory(
                             car_x, car_y, car_s, car_d, car_yaw, car_speed_in_ms, car_acceleration,
                             map_waypoints_s, map_waypoints_x, map_waypoints_y, previous_path_x, previous_path_y) ;
@@ -170,7 +164,6 @@ int main()
 
                         previous_trajectory_generation_time = current_time ;
 
-                        std::cout << "Trajectory size: " << next_x_vals.size() << std::endl ;
                     }
                     else // Reuse trajectory
                     {
