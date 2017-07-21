@@ -114,9 +114,12 @@ int main()
                     double car_y = j[1]["y"];
                     double car_s = j[1]["s"];
                     double car_d = j[1]["d"];
-                    double car_yaw = j[1]["yaw"];
-                    double car_speed = j[1]["speed"];
 
+                    // Car yaw is the angle car makes with x-axis
+                    double car_yaw = j[1]["yaw"];
+                    double car_yaw_in_rads = deg2rad(car_yaw) ;
+
+                    double car_speed = j[1]["speed"];
                     double car_speed_in_ms = 0.44704 * car_speed ;
 
                     // Previous path data given to the Planner
