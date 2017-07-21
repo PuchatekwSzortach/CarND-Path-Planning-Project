@@ -264,6 +264,8 @@ double get_cartesian_trajectory_distance(vector<double> &trajectory_x, vector<do
 
 vector<double> get_smoothed_trajectory(vector<double> &time_steps, vector<double> &trajectory)
 {
+    double time_size = double(time_steps.size()) ;
+    double trajectory_size = double(trajectory.size()) ;
 
     double size = double(trajectory.size()) ;
 
@@ -288,11 +290,9 @@ vector<double> get_smoothed_trajectory(vector<double> &time_steps, vector<double
     {
         double smooth_value = spline(time_steps[index]) ;
         smooth_trajectory.push_back(smooth_value) ;
-
     }
 
     return smooth_trajectory ;
-
 }
 
 
@@ -351,12 +351,16 @@ vector<double> get_final_s_state(vector<double> &s_trajectory, double time_betwe
     double ideal_target_speed = 20 ;
     double target_acceleration = (ideal_target_speed - initial_speed) / time_horizon ;
 
-    double max_acceleration = 0.5 ;
+    std::cout << "Initial target acceleration: " << target_acceleration << std::endl ;
+
+    double max_acceleration = 1.0 ;
     // If acceleration is too large, limit it
     while (std::abs(target_acceleration) > max_acceleration)
     {
         target_acceleration *= 0.9 ;
     }
+
+    std::cout << "After max acceleration check: " << target_acceleration << std::endl ;
 
     double max_jerk = 2.0 ;
     // If jerk would be too large, limit it
@@ -364,6 +368,8 @@ vector<double> get_final_s_state(vector<double> &s_trajectory, double time_betwe
     {
         target_acceleration = 0.5 * (target_acceleration + initial_acceleration) ;
     }
+
+    std::cout << "After max jerk check: " << target_acceleration << std::endl ;
 
     // Now compute position and velocity of final state
     double target_position =
@@ -465,8 +471,8 @@ vector<vector<double>> get_jerk_minimizing_trajectory(
         time_instant += 1.0 / steps_per_second ;
     }
 
-    auto smooth_x_trajectory = get_smoothed_trajectory(time_steps, xy_trajectory[0]) ;
-    auto smooth_y_trajectory = get_smoothed_trajectory(time_steps, xy_trajectory[1]) ;
+    auto smooth_x_trajectory = get_smoothed_trajectory(complete_time_steps, xy_trajectory[0]) ;
+    auto smooth_y_trajectory = get_smoothed_trajectory(complete_time_steps, xy_trajectory[1]) ;
 
     vector<vector<double>> smooth_xy_trajectory {smooth_x_trajectory, smooth_y_trajectory} ;
 
