@@ -353,7 +353,7 @@ vector<double> get_final_s_state(vector<double> &s_trajectory, double time_betwe
 
     std::cout << "Initial target acceleration: " << target_acceleration << std::endl ;
 
-    double max_acceleration = 1.0 ;
+    double max_acceleration = 2.0 ;
     // If acceleration is too large, limit it
     while (std::abs(target_acceleration) > max_acceleration)
     {
