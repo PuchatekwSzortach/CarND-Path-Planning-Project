@@ -403,10 +403,10 @@ vector<double> get_final_s_state(
 {
     double car_yaw_in_rad = std::atan2(previous_trajectory_y.back(), previous_trajectory_x.back()) ;
 
-    auto frenet_sd = getFrenet(
+    auto sd = getFrenet(
         previous_trajectory_x.back(), previous_trajectory_y.back(), car_yaw_in_rad, maps_x, maps_y) ;
 
-    double initial_s = frenet_sd[0] ;
+    double initial_s = sd[0] ;
 
     double initial_car_speed = get_previous_trajectory_final_speed(
         previous_trajectory_x, previous_trajectory_y, time_between_steps) ;
@@ -528,18 +528,7 @@ vector<vector<double>> get_jerk_minimizing_trajectory(
 
     auto xy_trajectory = convert_frenet_trajectory_to_cartesian_trajectory(
         s_trajectory, smooth_d_trajectory, maps_s, maps_x, maps_y) ;
-//
-//
-//    // Add new generated steps
-//    for(int index = 0 ; index < added_s_trajectory.size() ; ++index)
-//    {
-//        x_trajectory.push_back(added_xy_trajectory[0][index]) ;
-//        y_trajectory.push_back(added_xy_trajectory[1][index]) ;
-//    }
-//
-//    vector<vector<double>> xy_trajectory {x_trajectory, y_trajectory} ;
-//
-//
+
     return xy_trajectory ;
 
 }
