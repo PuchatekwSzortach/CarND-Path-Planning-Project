@@ -264,10 +264,12 @@ double get_cartesian_trajectory_distance(vector<double> &trajectory_x, vector<do
 
 vector<double> get_smoothed_trajectory(vector<double> &time_steps, vector<double> &trajectory)
 {
-    double time_size = double(time_steps.size()) ;
-    double trajectory_size = double(trajectory.size()) ;
-
     double size = double(trajectory.size()) ;
+
+    if(size < 5)
+    {
+        return trajectory ;
+    }
 
     // Select a few indices to use for spline interpolation
     vector<int> indices = {0, int(0.25 * size), int(0.5 * size), int(0.75 * size), int(size) - 1} ;
@@ -299,10 +301,10 @@ vector<double> get_smoothed_trajectory(vector<double> &time_steps, vector<double
 vector<double> get_initial_s_state(vector<double> &s_trajectory, double time_between_steps)
 {
     double initial_s = s_trajectory.back() ;
-    double initial_car_speed = get_last_s_speed(s_trajectory, time_between_steps) ;
-    double initial_car_acceleration = get_last_s_acceleration(s_trajectory, time_between_steps) ;
+    double initial_speed = get_last_s_speed(s_trajectory, time_between_steps) ;
+    double initial_acceleration = get_last_s_acceleration(s_trajectory, time_between_steps) ;
 
-    vector<double> initial_s_state {initial_s, initial_car_speed, initial_car_acceleration} ;
+    vector<double> initial_s_state {initial_s, initial_speed, initial_acceleration} ;
     return initial_s_state ;
 }
 
@@ -402,6 +404,18 @@ vector<vector<double>> get_jerk_minimizing_trajectory(
         }
     }
 
+    double steps_per_second = 50.0 ;
+    double time_between_steps = 1.0 / steps_per_second ;
+
+    double time_instant = 0 ;
+    vector<double> previous_trajectory_time_steps ;
+
+    for(int index = 0 ; index < previous_trajectory_x.size() ; ++index)
+    {
+        previous_trajectory_time_steps.push_back(time_instant) ;
+        time_instant += 1.0 / steps_per_second ;
+    }
+
     vector<double> s_trajectory ;
     vector<double> d_trajectory ;
 
@@ -418,13 +432,16 @@ vector<vector<double>> get_jerk_minimizing_trajectory(
         d_trajectory.push_back(sd[1]) ;
     }
 
-    double steps_per_second = 50.0 ;
-    double time_between_steps = 1.0 / steps_per_second ;
+    auto smooth_s_trajectory = get_smoothed_trajectory(previous_trajectory_time_steps, s_trajectory) ;
+    auto smooth_d_trajectory = get_smoothed_trajectory(previous_trajectory_time_steps, d_trajectory) ;
 
     double time_horizon = 4.0 ;
 
-    vector<double> initial_s_state = get_initial_s_state(s_trajectory, time_between_steps) ;
-    vector<double> final_s_state = get_final_s_state(s_trajectory, time_between_steps, time_horizon) ;
+    vector<double> initial_s_state = get_initial_s_state(smooth_s_trajectory, time_between_steps) ;
+    vector<double> final_s_state = get_final_s_state(smooth_s_trajectory, time_between_steps, time_horizon) ;
+
+//    std::cout << "Initial s state: " << initial_s_state[0] << ", " << initial_s_state[1] << ", " << initial_s_state[2] << std::endl ;
+//    std::cout << "Final s state: " << final_s_state[0] << ", " << final_s_state[1] << ", " << final_s_state[2] << std::endl ;
 
     vector<double> initial_d_state = get_initial_d_state(
         previous_trajectory_x, previous_trajectory_y, maps_x, maps_y, time_between_steps) ;
@@ -442,7 +459,7 @@ vector<vector<double>> get_jerk_minimizing_trajectory(
 
     // End of previous path already includes a point at our initial state, so add new trajectories
     // from one instant after that
-    double time_instant = 1.0 / steps_per_second ;
+    time_instant = 1.0 / steps_per_second ;
 
     while(time_instant <= time_horizon)
     {
@@ -455,17 +472,17 @@ vector<vector<double>> get_jerk_minimizing_trajectory(
 
     for(int index = 0 ; index < added_s_trajectory.size() ; ++index)
     {
-        s_trajectory.push_back(added_s_trajectory[index]) ;
-        d_trajectory.push_back(added_d_trajectory[index]) ;
+        smooth_s_trajectory.push_back(added_s_trajectory[index]) ;
+        smooth_d_trajectory.push_back(added_d_trajectory[index]) ;
     }
 
     auto xy_trajectory = convert_frenet_trajectory_to_cartesian_trajectory(
-        s_trajectory, d_trajectory, maps_s, maps_x, maps_y) ;
+        smooth_s_trajectory, smooth_d_trajectory, maps_s, maps_x, maps_y) ;
 
     vector<double> complete_time_steps ;
     time_instant = 0 ;
 
-    for(int index = 0 ; index < s_trajectory.size() ; ++index)
+    for(int index = 0 ; index < smooth_s_trajectory.size() ; ++index)
     {
         complete_time_steps.push_back(time_instant) ;
         time_instant += 1.0 / steps_per_second ;
