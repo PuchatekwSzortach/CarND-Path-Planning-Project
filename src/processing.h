@@ -244,7 +244,6 @@ double get_last_s_acceleration(vector<double> &s_trajectory, double time_interva
 }
 
 
-
 double get_cartesian_trajectory_distance(vector<double> &trajectory_x, vector<double> &trajectory_y)
 {
     double cumulative_distance = 0 ;
@@ -263,57 +262,36 @@ double get_cartesian_trajectory_distance(vector<double> &trajectory_x, vector<do
 }
 
 
-vector<double> get_smoothed_d_trajectory(vector<double> &s_trajectory, vector<double> &d_trajectory)
+vector<double> get_smoothed_trajectory(vector<double> &time_steps, vector<double> &trajectory)
 {
 
-    if(s_trajectory.size() < 5)
-    {
-        return d_trajectory ;
-    }
-
-    double size = double(s_trajectory.size()) ;
+    double size = double(trajectory.size()) ;
 
     // Select a few indices to use for spline interpolation
     vector<int> indices = {0, int(0.25 * size), int(0.5 * size), int(0.75 * size), int(size) - 1} ;
 
-    vector<double> s_args ;
-    vector<double> d_args ;
+    vector<double> time_args ;
+    vector<double> trajectory_args ;
 
     for(int index: indices)
     {
-        s_args.push_back(s_trajectory[index]) ;
-        d_args.push_back(d_trajectory[index]) ;
-    }
-
-    // Check all s args are increasing
-    bool all_s_args_are_increasing = true ;
-
-    for(int index = 1 ; index < s_args.size() ; ++index)
-    {
-        if(s_args[index] - s_args[index - 1] <= 0)
-        {
-            all_s_args_are_increasing = false ;
-        }
-    }
-
-    if(!all_s_args_are_increasing)
-    {
-        return d_trajectory ;
+        time_args.push_back(time_steps[index]) ;
+        trajectory_args.push_back(trajectory[index]) ;
     }
 
     tk::spline spline;
-    spline.set_points(s_args, d_args);
+    spline.set_points(time_args, trajectory_args);
 
-    vector<double> smooth_d_trajectory ;
+    vector<double> smooth_trajectory ;
 
-    for(int index = 0 ; index < s_trajectory.size() ; ++index)
+    for(int index = 0 ; index < time_steps.size() ; ++index)
     {
-        double smooth_d = spline(s_trajectory[index]) ;
-        smooth_d_trajectory.push_back(smooth_d) ;
+        double smooth_value = spline(time_steps[index]) ;
+        smooth_trajectory.push_back(smooth_value) ;
 
     }
 
-    return smooth_d_trajectory ;
+    return smooth_trajectory ;
 
 }
 
@@ -364,18 +342,17 @@ vector<double> get_initial_d_state(
 
 vector<double> get_final_s_state(vector<double> &s_trajectory, double time_between_steps, double time_horizon)
 {
-
     auto initial_s_state = get_initial_s_state(s_trajectory, time_between_steps) ;
 
     double initial_s = initial_s_state[0] ;
-    double initial_car_speed = initial_s_state[1] ;
-    double initial_car_acceleration = initial_s_state[2] ;
+    double initial_speed = initial_s_state[1] ;
+    double initial_acceleration = initial_s_state[2] ;
 
     double ideal_target_speed = 20 ;
-    double target_acceleration = (ideal_target_speed - initial_car_speed) / time_horizon ;
+    double target_acceleration = (ideal_target_speed - initial_speed) / time_horizon ;
 
     double max_acceleration = 0.5 ;
-    // If acceleration is over 1m/s, limit it
+    // If acceleration is too large, limit it
     while (std::abs(target_acceleration) > max_acceleration)
     {
         target_acceleration *= 0.9 ;
@@ -383,17 +360,17 @@ vector<double> get_final_s_state(vector<double> &s_trajectory, double time_betwe
 
     double max_jerk = 2.0 ;
     // If jerk would be too large, limit it
-    while(std::abs(target_acceleration - initial_car_acceleration) / time_horizon > max_jerk)
+    while(std::abs(target_acceleration - initial_acceleration) / time_horizon > max_jerk)
     {
-        target_acceleration = 0.5 * (target_acceleration + initial_car_acceleration) ;
+        target_acceleration = 0.5 * (target_acceleration + initial_acceleration) ;
     }
 
     // Now compute position and velocity of final state
     double target_position =
-        initial_s + (initial_car_speed * time_horizon) +
-        (0.25 * (initial_car_acceleration + target_acceleration) * time_horizon * time_horizon) ;
+        initial_s + (initial_speed * time_horizon) +
+        (0.25 * (initial_acceleration + target_acceleration) * time_horizon * time_horizon) ;
 
-    double target_speed = initial_car_speed + (0.5 * (initial_car_acceleration + target_acceleration) * time_horizon) ;
+    double target_speed = initial_speed + (0.5 * (initial_acceleration + target_acceleration) * time_horizon) ;
 
     vector<double> final_s_state {target_position, target_speed, target_acceleration} ;
 
@@ -443,10 +420,6 @@ vector<vector<double>> get_jerk_minimizing_trajectory(
     vector<double> initial_s_state = get_initial_s_state(s_trajectory, time_between_steps) ;
     vector<double> final_s_state = get_final_s_state(s_trajectory, time_between_steps, time_horizon) ;
 
-    std::cout << "car s: " << car_s << std::endl ;
-    std::cout << "s start: " << initial_s_state[0] << std::endl ;
-    std::cout << "s end: " << final_s_state[0] << std::endl ;
-
     vector<double> initial_d_state = get_initial_d_state(
         previous_trajectory_x, previous_trajectory_y, maps_x, maps_y, time_between_steps) ;
 
@@ -460,7 +433,10 @@ vector<vector<double>> get_jerk_minimizing_trajectory(
         initial_d_state, final_d_state, time_horizon) ;
 
     vector<double> time_steps ;
-    double time_instant = 0 ;
+
+    // End of previous path already includes a point at our initial state, so add new trajectories
+    // from one instant after that
+    double time_instant = 1.0 / steps_per_second ;
 
     while(time_instant <= time_horizon)
     {
@@ -477,16 +453,24 @@ vector<vector<double>> get_jerk_minimizing_trajectory(
         d_trajectory.push_back(added_d_trajectory[index]) ;
     }
 
-    // Calculate smooth
-    auto smooth_d_trajectory = get_smoothed_d_trajectory(s_trajectory, d_trajectory) ;
-
-//    auto xy_trajectory = convert_frenet_trajectory_to_cartesian_trajectory(
-//        s_trajectory, smooth_d_trajectory, maps_s, maps_x, maps_y) ;
-
     auto xy_trajectory = convert_frenet_trajectory_to_cartesian_trajectory(
         s_trajectory, d_trajectory, maps_s, maps_x, maps_y) ;
 
-    return xy_trajectory ;
+    vector<double> complete_time_steps ;
+    time_instant = 0 ;
+
+    for(int index = 0 ; index < s_trajectory.size() ; ++index)
+    {
+        complete_time_steps.push_back(time_instant) ;
+        time_instant += 1.0 / steps_per_second ;
+    }
+
+    auto smooth_x_trajectory = get_smoothed_trajectory(time_steps, xy_trajectory[0]) ;
+    auto smooth_y_trajectory = get_smoothed_trajectory(time_steps, xy_trajectory[1]) ;
+
+    vector<vector<double>> smooth_xy_trajectory {smooth_x_trajectory, smooth_y_trajectory} ;
+
+    return smooth_xy_trajectory ;
 
 }
 
