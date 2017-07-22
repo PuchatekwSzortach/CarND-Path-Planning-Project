@@ -115,7 +115,7 @@ class TrajectoryPlanner
             d_trajectory.push_back(this->saved_d_trajectory[index]) ;
         }
 
-        double time_horizon = 2.0 ;
+        double time_horizon = 4.0 ;
         double steps_per_second = 50.0 ;
         double time_per_step = 1.0 / steps_per_second ;
 

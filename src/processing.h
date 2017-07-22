@@ -266,13 +266,27 @@ vector<double> get_smoothed_trajectory(vector<double> &time_steps, vector<double
 {
     double size = double(trajectory.size()) ;
 
-    if(size < 5)
+    int min_size = 10 ;
+    if(size < min_size)
     {
         return trajectory ;
     }
 
-    // Select a few indices to use for spline interpolation
-    vector<int> indices = {0, int(0.25 * size), int(0.5 * size), int(0.75 * size), int(size) - 1} ;
+//    // Select a few indices to use for spline interpolation
+//    vector<int> indices = {0, int(0.25 * size), int(0.5 * size), int(0.75 * size), int(size) - 1} ;
+
+    double ratio = 0 ;
+    vector<int> indices ;
+
+    double ratio_increase = 1.0 / double(min_size) ;
+
+    while(ratio < 1.0)
+    {
+        int index = int(double(size) * ratio) ;
+        indices.push_back(index) ;
+
+        ratio += ratio_increase ;
+    }
 
     vector<double> time_args ;
     vector<double> trajectory_args ;
@@ -417,14 +431,14 @@ vector<double> get_final_d_state(
         }
     }
 
-    double max_acceleration = 0.5 ;
+    double max_acceleration = 0.1 ;
     // If acceleration is too large, limit it
     while (std::abs(final_acceleration) > max_acceleration)
     {
         final_acceleration *= 0.9 ;
     }
 
-    double max_jerk = 1.0 ;
+    double max_jerk = 0.1 ;
     // If jerk would be too large, limit it
     while(std::abs(final_acceleration - initial_acceleration) / time_horizon > max_jerk)
     {
