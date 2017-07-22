@@ -326,7 +326,7 @@ vector<double> get_initial_d_state(vector<double> &previous_d_trajectory, double
 }
 
 
-vector<double> get_final_s_state(vector<double> &s_trajectory, double time_between_steps, double time_horizon)
+vector<double> get_final_s_state(vector<double> &s_trajectory, double time_horizon, double time_between_steps)
 {
     auto initial_s_state = get_initial_s_state(s_trajectory, time_between_steps) ;
 
@@ -340,7 +340,7 @@ vector<double> get_final_s_state(vector<double> &s_trajectory, double time_betwe
 //    std::cout << "Previous trajectory acceleration was " << initial_acceleration << std::endl ;
 //    std::cout << "Initial target acceleration: " << target_acceleration << std::endl ;
 
-    double max_acceleration = 4.0 ;
+    double max_acceleration = 1.0 ;
     // If acceleration is too large, limit it
     while (std::abs(target_acceleration) > max_acceleration)
     {
@@ -349,7 +349,7 @@ vector<double> get_final_s_state(vector<double> &s_trajectory, double time_betwe
 
 //    std::cout << "After max acceleration check: " << target_acceleration << std::endl ;
 
-    double max_jerk = 8.0 ;
+    double max_jerk = 2.0 ;
     // If jerk would be too large, limit it
     while(std::abs(target_acceleration - initial_acceleration) / time_horizon > max_jerk)
     {
@@ -370,5 +370,89 @@ vector<double> get_final_s_state(vector<double> &s_trajectory, double time_betwe
     return final_s_state ;
 }
 
+vector<double> get_final_d_state(
+    vector<double> &previous_d_trajectory, double ideal_position, double time_horizon, double time_between_steps)
+{
+    auto initial_d_state = get_initial_d_state(previous_d_trajectory, time_between_steps) ;
+
+    double initial_position = initial_d_state[0] ;
+    double initial_speed = initial_d_state[1] ;
+    double initial_acceleration = initial_d_state[2] ;
+
+    // Compute final state assuming input from initial state only
+    double final_position_based_on_initial_state =
+        initial_position + (initial_speed * time_horizon) *
+        (0.5 * initial_acceleration * time_horizon * time_horizon) ;
+
+    double final_speed_based_on_initial_state = initial_speed + (initial_acceleration * time_horizon) ;
+
+    double position_difference = ideal_position - final_position_based_on_initial_state ;
+
+    double final_acceleration = 0 ;
+
+    // We should increase d
+    if(position_difference > 0)
+    {
+        // We are already going in right direction
+        if(final_speed_based_on_initial_state > 0)
+        {
+            final_acceleration = 0 ;
+        }
+        else
+        {
+            final_acceleration = -1 ;
+        }
+
+    }
+    else // We should decrease d
+    {
+        // We need to go in opposite direction
+        if(final_speed_based_on_initial_state > 0)
+        {
+            final_acceleration = -1 ;
+        }
+        else // continue
+        {
+            final_acceleration = 0 ;
+        }
+    }
+
+    double max_acceleration = 0.5 ;
+    // If acceleration is too large, limit it
+    while (std::abs(final_acceleration) > max_acceleration)
+    {
+        final_acceleration *= 0.9 ;
+    }
+
+    double max_jerk = 1.0 ;
+    // If jerk would be too large, limit it
+    while(std::abs(final_acceleration - initial_acceleration) / time_horizon > max_jerk)
+    {
+        final_acceleration = (0.8 * final_acceleration) + (0.2 * initial_acceleration) ;
+    }
+
+    // Compute actual position and speed we can reach
+    double final_position =
+        initial_position + (initial_speed * time_horizon) +
+        (0.25 * (initial_acceleration + final_acceleration) * time_horizon * time_horizon) ;
+
+    double final_speed = initial_speed + (0.5 * (initial_acceleration + final_acceleration) * time_horizon) ;
+
+    vector<double> final_state {final_position, final_speed, final_acceleration} ;
+    return final_state ;
+}
+
+
+void print_trajectory(vector<double> &trajectory)
+{
+    std::cout << "\n\n[" ;
+
+    for(auto value: trajectory)
+    {
+        std::cout << value << ", " ;
+    }
+
+    std::cout << "]," << std::endl ;
+}
 
 #endif //PATH_PLANNING_PROCESSING_H

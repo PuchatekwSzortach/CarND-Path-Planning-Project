@@ -21,8 +21,6 @@ class TrajectoryPlanner
     vector<double> maps_y ;
     vector<double> maps_s ;
 
-
-
     TrajectoryPlanner(vector<double> maps_x, vector<double> maps_y, vector<double> maps_s)
     {
         this->maps_x = maps_x ;
@@ -54,7 +52,6 @@ class TrajectoryPlanner
         }
 
     }
-
 
     int get_index_of_closest_saved_trajectory_point(double car_x, double car_y)
     {
@@ -123,11 +120,11 @@ class TrajectoryPlanner
         double time_per_step = 1.0 / steps_per_second ;
 
         vector<double> initial_s_state = get_initial_s_state(s_trajectory, time_per_step) ;
-        vector<double> final_s_state = get_final_s_state(s_trajectory, time_per_step, time_horizon) ;
+        vector<double> final_s_state = get_final_s_state(s_trajectory, time_horizon, time_per_step) ;
 
         vector<double> initial_d_state = get_initial_d_state(d_trajectory, time_per_step) ;
         double target_d = 6.0 ;
-        vector<double> final_d_state = {target_d, 0.0, 0.0} ;
+        vector<double> final_d_state = get_final_d_state(d_trajectory, target_d, time_horizon, time_per_step) ;
 
         auto s_coefficients = get_jerk_minimizing_trajectory_coefficients(
             initial_s_state, final_s_state, time_horizon) ;
@@ -159,11 +156,11 @@ class TrajectoryPlanner
         auto xy_trajectory = this->get_smoothed_out_xy_trajectory_from_sd_trajectory(
             s_trajectory, d_trajectory, time_per_step) ;
 
+//        print_trajectory(xy_trajectory[1]) ;
+
         vector<vector<double>> xysd_trajectory {xy_trajectory[0], xy_trajectory[1], s_trajectory, d_trajectory} ;
         return xysd_trajectory ;
     }
-
-
 
 } ;
 
