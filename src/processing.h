@@ -337,8 +337,8 @@ vector<double> get_final_s_state(vector<double> &s_trajectory, double time_betwe
     double ideal_target_speed = 20 ;
     double target_acceleration = (ideal_target_speed - initial_speed) / time_horizon ;
 
-    std::cout << "Previous trajectory acceleration was " << initial_acceleration << std::endl ;
-    std::cout << "Initial target acceleration: " << target_acceleration << std::endl ;
+//    std::cout << "Previous trajectory acceleration was " << initial_acceleration << std::endl ;
+//    std::cout << "Initial target acceleration: " << target_acceleration << std::endl ;
 
     double max_acceleration = 4.0 ;
     // If acceleration is too large, limit it
@@ -347,7 +347,7 @@ vector<double> get_final_s_state(vector<double> &s_trajectory, double time_betwe
         target_acceleration *= 0.9 ;
     }
 
-    std::cout << "After max acceleration check: " << target_acceleration << std::endl ;
+//    std::cout << "After max acceleration check: " << target_acceleration << std::endl ;
 
     double max_jerk = 8.0 ;
     // If jerk would be too large, limit it
@@ -356,7 +356,7 @@ vector<double> get_final_s_state(vector<double> &s_trajectory, double time_betwe
         target_acceleration = (0.8 * target_acceleration) + (0.2 * initial_acceleration) ;
     }
 
-    std::cout << "After max jerk check: " << target_acceleration << std::endl ;
+//    std::cout << "After max jerk check: " << target_acceleration << std::endl ;
 
     // Now compute position and velocity of final state
     double target_position =

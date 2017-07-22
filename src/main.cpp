@@ -11,6 +11,7 @@
 #include "Eigen-3.3/Eigen/QR"
 #include "json.hpp"
 #include "processing.h"
+#include "trajectory.h"
 
 using namespace std;
 
@@ -56,6 +57,8 @@ int main()
 
     string line;
 
+    TrajectoryPlanner trajectory_planner ;
+
     while (getline(in_map_, line))
     {
 
@@ -79,7 +82,7 @@ int main()
     }
 
     h.onMessage(
-        [&map_waypoints_x, &map_waypoints_y, &map_waypoints_s, &map_waypoints_dx, &map_waypoints_dy](
+        [&map_waypoints_x, &map_waypoints_y, &map_waypoints_s, &map_waypoints_dx, &map_waypoints_dy, &trajectory_planner](
             uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
             uWS::OpCode opCode)
     {
@@ -144,6 +147,23 @@ int main()
 
                         next_x_vals = trajectory[0] ;
                         next_y_vals = trajectory[1] ;
+
+                        vector<double> dummy_s_trajectory = vector<double>() ;
+                        vector<double> dummy_d_trajectory = vector<double>() ;
+
+
+
+                        if(trajectory_planner.saved_x_trajectory.size() < 3)
+                        {
+                            trajectory_planner.set_saved_trajectories_from_current_state(
+                                car_x, car_y, car_s, car_d) ;
+                        }
+
+                        trajectory_planner.get_trajectory_based_on_previous_trajectory(
+                            car_x, car_y, car_s, car_d, previous_path_x, previous_path_y) ;
+
+                        trajectory_planner.save_trajectories(
+                            trajectory[0], trajectory[1], dummy_s_trajectory, dummy_d_trajectory) ;
 
                     }
                     else // Reuse trajectory
