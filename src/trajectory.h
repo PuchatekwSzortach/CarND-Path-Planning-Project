@@ -81,8 +81,6 @@ class TrajectoryPlanner
         auto xy_trajectory = convert_frenet_trajectory_to_cartesian_trajectory(
             s_trajectory, d_trajectory, this->maps_s, this->maps_x, this->maps_y) ;
 
-//        return xy_trajectory ;
-
         vector<double> complete_time_steps ;
         double time_instant = 0 ;
 
@@ -91,9 +89,6 @@ class TrajectoryPlanner
             complete_time_steps.push_back(time_instant) ;
             time_instant += time_per_step ;
         }
-
-//        auto smooth_x_trajectory = get_smoothed_n_degree_trajectory(complete_time_steps, xy_trajectory[0], 4) ;
-//        auto smooth_y_trajectory = get_smoothed_n_degree_trajectory(complete_time_steps, xy_trajectory[1], 4) ;
 
         auto smooth_x_trajectory = get_smoothed_trajectory(complete_time_steps, xy_trajectory[0]) ;
         auto smooth_y_trajectory = get_smoothed_trajectory(complete_time_steps, xy_trajectory[1]) ;
@@ -158,14 +153,6 @@ class TrajectoryPlanner
             d_trajectory.push_back(added_d_trajectory[index]) ;
         }
 
-//        auto xy_trajectory = this->get_smoothed_out_xy_trajectory_from_sd_trajectory(
-//            s_trajectory, d_trajectory, time_per_step) ;
-//
-//        print_trajectory(xy_trajectory[1]) ;
-//
-//        vector<vector<double>> xysd_trajectory {xy_trajectory[0], xy_trajectory[1], s_trajectory, d_trajectory} ;
-//        return xysd_trajectory ;
-
         auto added_xy_trajectory = this->get_smoothed_out_xy_trajectory_from_sd_trajectory(
             added_s_trajectory, added_d_trajectory, time_per_step) ;
 
@@ -183,6 +170,17 @@ class TrajectoryPlanner
             x_trajectory.push_back(added_xy_trajectory[0][index]) ;
             y_trajectory.push_back(added_xy_trajectory[1][index]) ;
         }
+
+        vector<double> complete_time_steps ;
+        time_instant = 0 ;
+
+        for(int index = 0 ; index < x_trajectory.size() ; ++index)
+        {
+            complete_time_steps.push_back(time_instant) ;
+            time_instant += time_per_step ;
+        }
+
+//        print_trajectory(y_trajectory) ;
 
         vector<vector<double>> xysd_trajectory {x_trajectory, y_trajectory, s_trajectory, d_trajectory} ;
         return xysd_trajectory ;

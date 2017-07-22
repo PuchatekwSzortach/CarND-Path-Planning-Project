@@ -338,9 +338,6 @@ vector<double> get_final_s_state(vector<double> &s_trajectory, double time_horiz
     double ideal_target_speed = 20 ;
     double target_acceleration = (ideal_target_speed - initial_speed) / time_horizon ;
 
-//    std::cout << "Previous trajectory acceleration was " << initial_acceleration << std::endl ;
-//    std::cout << "Initial target acceleration: " << target_acceleration << std::endl ;
-
     double max_acceleration = 1.0 ;
     // If acceleration is too large, limit it
     while (std::abs(target_acceleration) > max_acceleration)
@@ -348,16 +345,12 @@ vector<double> get_final_s_state(vector<double> &s_trajectory, double time_horiz
         target_acceleration *= 0.9 ;
     }
 
-//    std::cout << "After max acceleration check: " << target_acceleration << std::endl ;
-
     double max_jerk = 2.0 ;
     // If jerk would be too large, limit it
     while(std::abs(target_acceleration - initial_acceleration) / time_horizon > max_jerk)
     {
         target_acceleration = (0.8 * target_acceleration) + (0.2 * initial_acceleration) ;
     }
-
-//    std::cout << "After max jerk check: " << target_acceleration << std::endl ;
 
     // Now compute position and velocity of final state
     double target_position =
@@ -388,7 +381,6 @@ vector<double> get_final_d_state(
     double final_speed_based_on_initial_state = initial_speed + (initial_acceleration * time_horizon) ;
 
     double position_difference = ideal_position - final_position_based_on_initial_state ;
-
     double final_acceleration = 0 ;
 
     // We should increase d
@@ -418,14 +410,14 @@ vector<double> get_final_d_state(
         }
     }
 
-    double max_acceleration = 0.1 ;
+    double max_acceleration = 0.05 ;
     // If acceleration is too large, limit it
     while (std::abs(final_acceleration) > max_acceleration)
     {
-        final_acceleration *= 0.9 ;
+        final_acceleration *= 0.8 ;
     }
 
-    double max_jerk = 0.1 ;
+    double max_jerk = 1.0 ;
     // If jerk would be too large, limit it
     while(std::abs(final_acceleration - initial_acceleration) / time_horizon > max_jerk)
     {
