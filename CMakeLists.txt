@@ -7,8 +7,8 @@ add_definitions(-std=c++11)
 set(CXX_FLAGS "-Wall")
 set(CMAKE_CXX_FLAGS, "${CXX_FLAGS}")
 
-set(sources src/main.cpp src/processing.h src/trajectory.h)
-set(test_sources src/tests.cpp src/processing.h)
+set(sources src/main.cpp src/processing.h src/trajectory.h src/polyfit.h src/polyfit.cpp)
+set(test_sources src/tests.cpp src/processing.h src/polyfit.h src/polyfit.cpp)
 
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") 

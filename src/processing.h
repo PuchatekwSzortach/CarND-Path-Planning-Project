@@ -266,27 +266,14 @@ vector<double> get_smoothed_trajectory(vector<double> &time_steps, vector<double
 {
     double size = double(trajectory.size()) ;
 
-    int min_size = 10 ;
-    if(size < min_size)
+    int min_size = 5 ;
+    if(size < int(min_size))
     {
         return trajectory ;
     }
 
-//    // Select a few indices to use for spline interpolation
-//    vector<int> indices = {0, int(0.25 * size), int(0.5 * size), int(0.75 * size), int(size) - 1} ;
-
-    double ratio = 0 ;
-    vector<int> indices ;
-
-    double ratio_increase = 1.0 / double(min_size) ;
-
-    while(ratio < 1.0)
-    {
-        int index = int(double(size) * ratio) ;
-        indices.push_back(index) ;
-
-        ratio += ratio_increase ;
-    }
+    // Select a few indices to use for spline interpolation
+    vector<int> indices = {0, int(0.25 * size), int(0.5 * size), int(0.75 * size), int(size) - 1} ;
 
     vector<double> time_args ;
     vector<double> trajectory_args ;

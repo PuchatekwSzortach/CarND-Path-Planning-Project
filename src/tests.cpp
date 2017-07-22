@@ -5,6 +5,8 @@
 #include <cassert>
 
 #include "processing.h"
+#include "polyfit.h"
+
 
 using namespace std ;
 
@@ -85,6 +87,25 @@ void test_evaluate_polynomial_square()
 }
 
 
+void test_polyfit()
+{
+    const int countOfElements = 3 ;
+    const int order = 2 ;
+    double xData[countOfElements] = {0, 1, 2};
+    double yData[countOfElements] = {-5, 0, 9};
+    double expected_coefficients[order + 1]; // resulting array of coefs
+
+    polyfit(xData, yData, countOfElements, order, expected_coefficients);
+
+    double actual_coefficients[order + 1] = {-5, 3, 2} ;
+
+    for(int index = 0 ; index < order + 1 ; ++index)
+    {
+        assert(actual_coefficients[index] == expected_coefficients[index]) ;
+    }
+
+}
+
 
 int main()
 {
@@ -94,6 +115,8 @@ int main()
 
     test_evaluate_polynomial_linear() ;
     test_evaluate_polynomial_square() ;
+
+    test_polyfit() ;
 
     std::cout << "All tests passed" << std::endl ;
 }
