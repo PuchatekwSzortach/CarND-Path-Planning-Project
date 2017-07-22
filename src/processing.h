@@ -148,7 +148,7 @@ vector<double> getXY(double s, double d, vector<double> maps_s, vector<double> m
 
 vector<vector<double>> convert_frenet_trajectory_to_cartesian_trajectory(
   vector<double> &s_trajectory, vector<double> &d_trajectory,
-  vector<double> maps_s, vector<double> maps_x, vector<double> maps_y)
+  vector<double> &maps_s, vector<double> &maps_x, vector<double> &maps_y)
 {
   vector<double> x_trajectory ;
   vector<double> y_trajectory ;
@@ -410,7 +410,7 @@ vector<double> get_final_d_state(
         }
     }
 
-    double max_acceleration = 0.05 ;
+    double max_acceleration = 1.0 ;
     // If acceleration is too large, limit it
     while (std::abs(final_acceleration) > max_acceleration)
     {
@@ -444,12 +444,12 @@ vector<vector<double>> get_xy_states_from_sd_states(
     auto xy = getXY(s_state[0], d_state[0], maps_s, maps_x, maps_y) ;
     int closest_index = ClosestWaypoint(xy[0], xy[1], maps_x, maps_y) ;
 
-    double closest_point_distance =  distance(xy[0], xy[0], maps_x[closest_index], maps_y[closest_index]) ;
-    double previous_point_distance =  distance(xy[0], xy[0], maps_x[closest_index - 1], maps_y[closest_index - 1]) ;
-    double next_point_distance =  distance(xy[0], xy[0], maps_x[closest_index + 1], maps_y[closest_index + 1]) ;
+    double closest_point_distance =  distance(xy[0], xy[1], maps_x[closest_index], maps_y[closest_index]) ;
+    double previous_point_distance =  distance(xy[0], xy[1], maps_x[closest_index - 1], maps_y[closest_index - 1]) ;
+    double next_point_distance =  distance(xy[0], xy[1], maps_x[closest_index + 1], maps_y[closest_index + 1]) ;
 
     int second_closest_index =
-        (previous_point_distance < next_point_distance) ? closest_index : closest_index + 1 ;
+        (previous_point_distance < next_point_distance) ? closest_index - 1 : closest_index + 1 ;
 
     double second_closest_point_distance =
         (previous_point_distance < next_point_distance) ? previous_point_distance : next_point_distance ;
@@ -462,6 +462,7 @@ vector<vector<double>> get_xy_states_from_sd_states(
     double second_closest_dx = maps_dx[second_closest_index] ;
     double second_closest_dy = maps_dy[second_closest_index] ;
 
+    // Do linear interpolation for dx and dy based on neighboring points
     double dx = ((closest_dx * second_closest_point_distance) + (second_closest_dx * closest_point_distance)) / distances_sum ;
     double dy = ((closest_dy * second_closest_point_distance) + (second_closest_dy * closest_point_distance)) / distances_sum ;
 

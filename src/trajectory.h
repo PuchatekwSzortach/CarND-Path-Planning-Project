@@ -335,20 +335,42 @@ class XYTrajectoryPlanner
         auto added_x_trajectory = evaluate_polynomial_over_vector(x_coefficients, added_time_steps) ;
         auto added_y_trajectory = evaluate_polynomial_over_vector(y_coefficients, added_time_steps) ;
 
+        // Remove last 10 elements from current trajectory and add them to new trajectory - so we will later smooth over
+        // last 10 elements of old trajectory and added trajectory
+        if(x_trajectory.size() > 10)
+        {
+            for(int index = 0 ; index < 1 ; ++index)
+            {
+                auto x = x_trajectory.back() ;
+                x_trajectory.pop_back() ;
+                added_x_trajectory.insert(added_x_trajectory.begin(), x) ;
+
+                auto y = y_trajectory.back() ;
+                y_trajectory.pop_back() ;
+                added_y_trajectory.insert(added_y_trajectory.begin(), y) ;
+
+                auto time = added_time_steps[0] ;
+                double previous_instant_time = time - time_per_step ;
+                added_time_steps.insert(added_time_steps.begin(), previous_instant_time) ;
+            }
+        }
+
+        auto smooth_x_trajectory = get_smoothed_trajectory(added_time_steps, added_x_trajectory) ;
+        auto smooth_y_trajectory = get_smoothed_trajectory(added_time_steps, added_y_trajectory) ;
+
         for(int index = 0 ; index < added_x_trajectory.size() ; ++index)
         {
             s_trajectory.push_back(added_s_trajectory[index]) ;
             d_trajectory.push_back(added_d_trajectory[index]) ;
 
-            x_trajectory.push_back(added_x_trajectory[index]) ;
-            y_trajectory.push_back(added_y_trajectory[index]) ;
+            x_trajectory.push_back(smooth_x_trajectory[index]) ;
+            y_trajectory.push_back(smooth_y_trajectory[index]) ;
         }
 
-//        print_trajectory(x_trajectory) ;
+//        print_trajectory(d_trajectory) ;
 
         vector<vector<double>> xysd_trajectory {x_trajectory, y_trajectory, s_trajectory, d_trajectory} ;
         return xysd_trajectory ;
-
     }
 
 } ;
