@@ -436,6 +436,28 @@ vector<double> get_final_d_state(
 }
 
 
+vector<vector<double>> get_xy_states_from_sd_states(
+    vector<double> &s_state, vector<double> &d_state,
+    vector<double> &maps_s, vector<double> &maps_x, vector<double> &maps_y,
+    vector<double> &maps_dx, vector<double> &maps_dy)
+{
+    auto xy = getXY(s_state[0], d_state[0], maps_s, maps_x, maps_y) ;
+    int closest_waypoint_index = ClosestWaypoint(xy[0], xy[1], maps_x, maps_y) ;
+
+    double dx = maps_dx[closest_waypoint_index] ;
+    double dy = maps_dy[closest_waypoint_index] ;
+
+    double speed = std::sqrt((s_state[1] * s_state[1]) + (d_state[1] * d_state[1])) ;
+    double acceleration = std::sqrt((s_state[2] * s_state[2]) + (d_state[2] * d_state[2])) ;
+
+    vector<double> x_state {xy[0], speed * dx, acceleration * dx} ;
+    vector<double> y_state {xy[1], speed * dy, acceleration * dy} ;
+
+    vector<vector<double>> xy_states {x_state, y_state} ;
+    return xy_states ;
+}
+
+
 void print_trajectory(vector<double> &trajectory)
 {
     std::cout << "\n\n[" ;
