@@ -92,12 +92,12 @@ class TrajectoryPlanner
             time_instant += time_per_step ;
         }
 
-        auto smooth_x_trajectory = get_smoothed_n_degree_trajectory(complete_time_steps, xy_trajectory[0], 4) ;
-        auto smooth_y_trajectory = get_smoothed_n_degree_trajectory(complete_time_steps, xy_trajectory[1], 4) ;
+//        auto smooth_x_trajectory = get_smoothed_n_degree_trajectory(complete_time_steps, xy_trajectory[0], 4) ;
+//        auto smooth_y_trajectory = get_smoothed_n_degree_trajectory(complete_time_steps, xy_trajectory[1], 4) ;
 
-//        auto smooth_x_trajectory = get_smoothed_trajectory(complete_time_steps, xy_trajectory[0]) ;
-//        auto smooth_y_trajectory = get_smoothed_trajectory(complete_time_steps, xy_trajectory[1]) ;
-//
+        auto smooth_x_trajectory = get_smoothed_trajectory(complete_time_steps, xy_trajectory[0]) ;
+        auto smooth_y_trajectory = get_smoothed_trajectory(complete_time_steps, xy_trajectory[1]) ;
+
         vector<vector<double>> smooth_xy_trajectory {smooth_x_trajectory, smooth_y_trajectory} ;
         return smooth_xy_trajectory ;
     }
@@ -158,12 +158,33 @@ class TrajectoryPlanner
             d_trajectory.push_back(added_d_trajectory[index]) ;
         }
 
-        auto xy_trajectory = this->get_smoothed_out_xy_trajectory_from_sd_trajectory(
-            s_trajectory, d_trajectory, time_per_step) ;
+//        auto xy_trajectory = this->get_smoothed_out_xy_trajectory_from_sd_trajectory(
+//            s_trajectory, d_trajectory, time_per_step) ;
+//
+//        print_trajectory(xy_trajectory[1]) ;
+//
+//        vector<vector<double>> xysd_trajectory {xy_trajectory[0], xy_trajectory[1], s_trajectory, d_trajectory} ;
+//        return xysd_trajectory ;
 
-        print_trajectory(xy_trajectory[1]) ;
+        auto added_xy_trajectory = this->get_smoothed_out_xy_trajectory_from_sd_trajectory(
+            added_s_trajectory, added_d_trajectory, time_per_step) ;
 
-        vector<vector<double>> xysd_trajectory {xy_trajectory[0], xy_trajectory[1], s_trajectory, d_trajectory} ;
+        vector<double> x_trajectory ;
+        vector<double> y_trajectory ;
+
+        for(int index = current_position_index ; index < this->saved_x_trajectory.size() ; ++index)
+        {
+            x_trajectory.push_back(this->saved_x_trajectory[index]) ;
+            y_trajectory.push_back(this->saved_y_trajectory[index]) ;
+        }
+
+        for(int index = 0 ; index < added_xy_trajectory[0].size() ; ++index)
+        {
+            x_trajectory.push_back(added_xy_trajectory[0][index]) ;
+            y_trajectory.push_back(added_xy_trajectory[1][index]) ;
+        }
+
+        vector<vector<double>> xysd_trajectory {x_trajectory, y_trajectory, s_trajectory, d_trajectory} ;
         return xysd_trajectory ;
     }
 

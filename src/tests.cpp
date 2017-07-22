@@ -5,7 +5,6 @@
 #include <cassert>
 
 #include "processing.h"
-#include "polyfit.h"
 
 
 using namespace std ;
@@ -87,62 +86,6 @@ void test_evaluate_polynomial_square()
 }
 
 
-void test_polyfit()
-{
-    const int countOfElements = 3 ;
-    const int order = 2 ;
-    double xData[countOfElements] = {0, 1, 2};
-    double yData[countOfElements] = {-5, 0, 9};
-    double actual_coefficients[order + 1]; // resulting array of coefs
-
-    polyfit(xData, yData, countOfElements, order, actual_coefficients);
-
-    double expected_coefficients[order + 1] = {-5, 3, 2} ;
-
-    for(int index = 0 ; index < order + 1 ; ++index)
-    {
-        assert(expected_coefficients[index] == actual_coefficients[index]) ;
-    }
-
-}
-
-void test_polyfit_vector_input()
-{
-    vector<double> x_data {0, 1, 2} ;
-    vector<double> y_data {-5, 0, 9} ;
-
-    const int countOfElements = x_data.size() ;
-    const int order = 2 ;
-    double *xData = x_data.data() ;
-    double *yData = y_data.data() ;
-    double actual_coefficients[order + 1]; // resulting array of coefs
-
-    polyfit(xData, yData, countOfElements, order, actual_coefficients);
-
-    double expected_coefficients[order + 1] = {-5, 3, 2} ;
-
-    for(int index = 0 ; index < order + 1 ; ++index)
-    {
-        assert(expected_coefficients[index] == actual_coefficients[index]) ;
-    }
-}
-
-
-void test_get_2nd_degree_fit_coefficients()
-{
-    vector<double> x_data {0, 1, 2} ;
-    vector<double> y_data {-5, 0, 9} ;
-
-    vector<double> expected_coefficients {-5, 3, 2} ;
-    auto actual_coefficients = get_2nd_degree_fit_coefficients(x_data, y_data) ;
-
-    for(int index = 0 ; index < 3 ; ++index)
-    {
-        assert(actual_coefficients[index] == expected_coefficients[index]) ;
-    }
-}
-
-
 int main()
 {
     test_get_jerk_minimizing_trajectory_coefficients_simple() ;
@@ -151,10 +94,6 @@ int main()
 
     test_evaluate_polynomial_linear() ;
     test_evaluate_polynomial_square() ;
-
-    test_polyfit() ;
-    test_polyfit_vector_input() ;
-    test_get_2nd_degree_fit_coefficients() ;
 
     std::cout << "All tests passed" << std::endl ;
 }
