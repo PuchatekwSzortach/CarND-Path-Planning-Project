@@ -13,6 +13,7 @@
 #include "Eigen-3.3/Eigen/QR"
 #include "Eigen-3.3/Eigen/Dense"
 #include "spline.h"
+#include "polyfit.h"
 
 using namespace std ;
 
@@ -296,6 +297,86 @@ vector<double> get_smoothed_trajectory(vector<double> &time_steps, vector<double
     }
 
     return smooth_trajectory ;
+}
+
+
+vector<double> get_2nd_degree_fit_coefficients(vector<double> &x_data, vector<double> &y_data)
+{
+    const int countOfElements = x_data.size() ;
+    const int order = 2 ;
+    double *xData = x_data.data() ;
+    double *yData = y_data.data() ;
+    double coefficients[order + 1]; // resulting array of coefs
+
+    polyfit(xData, yData, countOfElements, order, coefficients);
+
+    vector<double> coefficients_vector ;
+
+    for(int index = 0 ; index < order + 1 ; ++index)
+    {
+        coefficients_vector.push_back(coefficients[index]) ;
+    }
+
+    return coefficients_vector ;
+}
+
+
+vector<double> get_n_degree_fit_coefficients(vector<double> &x_data, vector<double> &y_data, const int order)
+{
+    const int countOfElements = x_data.size() ;
+    double *xData = x_data.data() ;
+    double *yData = y_data.data() ;
+    double coefficients[order + 1]; // resulting array of coefs
+
+    polyfit(xData, yData, countOfElements, order, coefficients);
+
+    vector<double> coefficients_vector ;
+
+    for(int index = 0 ; index < order + 1 ; ++index)
+    {
+        coefficients_vector.push_back(coefficients[index]) ;
+    }
+
+    return coefficients_vector ;
+}
+
+
+vector<double> get_smoothed_square_trajectory(vector<double> &x_data, vector<double> &y_data)
+{
+    auto coefficients = get_2nd_degree_fit_coefficients(x_data, y_data) ;
+
+    vector<double> smooth_ys ;
+
+    for(auto x: x_data)
+    {
+        double y = coefficients[0] + (coefficients[1] * x) + (coefficients[2] * x * x) ;
+        smooth_ys.push_back(y) ;
+
+    }
+
+    return smooth_ys ;
+}
+
+
+vector<double> get_smoothed_n_degree_trajectory(vector<double> &x_data, vector<double> &y_data, int order)
+{
+    auto coefficients = get_n_degree_fit_coefficients(x_data, y_data, order) ;
+
+    vector<double> smooth_ys ;
+
+    for(auto x: x_data)
+    {
+        double y = 0 ;
+
+        for(int power = 0 ; power < order + 1 ; ++power)
+        {
+            y += coefficients[power] * std::pow(x, double(power)) ;
+        }
+
+        smooth_ys.push_back(y) ;
+    }
+
+    return smooth_ys ;
 }
 
 

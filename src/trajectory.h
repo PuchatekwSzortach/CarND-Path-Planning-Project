@@ -81,22 +81,25 @@ class TrajectoryPlanner
         auto xy_trajectory = convert_frenet_trajectory_to_cartesian_trajectory(
             s_trajectory, d_trajectory, this->maps_s, this->maps_x, this->maps_y) ;
 
-        return xy_trajectory ;
+//        return xy_trajectory ;
 
-//        vector<double> complete_time_steps ;
-//        double time_instant = 0 ;
-//
-//        for(int index = 0 ; index < s_trajectory.size() ; ++index)
-//        {
-//            complete_time_steps.push_back(time_instant) ;
-//            time_instant += time_per_step ;
-//        }
-//
+        vector<double> complete_time_steps ;
+        double time_instant = 0 ;
+
+        for(int index = 0 ; index < s_trajectory.size() ; ++index)
+        {
+            complete_time_steps.push_back(time_instant) ;
+            time_instant += time_per_step ;
+        }
+
+        auto smooth_x_trajectory = get_smoothed_n_degree_trajectory(complete_time_steps, xy_trajectory[0], 4) ;
+        auto smooth_y_trajectory = get_smoothed_n_degree_trajectory(complete_time_steps, xy_trajectory[1], 4) ;
+
 //        auto smooth_x_trajectory = get_smoothed_trajectory(complete_time_steps, xy_trajectory[0]) ;
 //        auto smooth_y_trajectory = get_smoothed_trajectory(complete_time_steps, xy_trajectory[1]) ;
 //
-//        vector<vector<double>> smooth_xy_trajectory {smooth_x_trajectory, smooth_y_trajectory} ;
-//        return smooth_xy_trajectory ;
+        vector<vector<double>> smooth_xy_trajectory {smooth_x_trajectory, smooth_y_trajectory} ;
+        return smooth_xy_trajectory ;
     }
 
     // Return 4D vector with x, y, s and d trajectories
