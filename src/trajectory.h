@@ -288,7 +288,7 @@ class XYTrajectoryPlanner
             d_trajectory.push_back(this->saved_d_trajectory[index]) ;
         }
 
-        double time_horizon = 4.0 ;
+        double time_horizon = 2.0 ;
         double steps_per_second = 50.0 ;
         double time_per_step = 1.0 / steps_per_second ;
 
@@ -344,7 +344,7 @@ class XYTrajectoryPlanner
             y_trajectory.push_back(added_y_trajectory[index]) ;
         }
 
-        print_trajectory(x_trajectory) ;
+//        print_trajectory(x_trajectory) ;
 
         vector<vector<double>> xysd_trajectory {x_trajectory, y_trajectory, s_trajectory, d_trajectory} ;
         return xysd_trajectory ;
