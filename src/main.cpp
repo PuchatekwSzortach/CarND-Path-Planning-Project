@@ -79,9 +79,7 @@ int main()
 
     }
 
-//    TrajectoryPlanner trajectory_planner(map_waypoints_x, map_waypoints_y, map_waypoints_s) ;
-
-    XYTrajectoryPlanner trajectory_planner(
+    TrajectoryPlanner trajectory_planner(
         map_waypoints_x, map_waypoints_y, map_waypoints_s, map_waypoints_dx, map_waypoints_dy) ;
 
     h.onMessage(
