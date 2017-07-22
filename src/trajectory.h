@@ -17,10 +17,17 @@ class TrajectoryPlanner
     vector<double> saved_s_trajectory ;
     vector<double> saved_d_trajectory ;
 
+    vector<double> maps_x ;
+    vector<double> maps_y ;
+    vector<double> maps_s ;
 
 
-    TrajectoryPlanner()
+
+    TrajectoryPlanner(vector<double> maps_x, vector<double> maps_y, vector<double> maps_s)
     {
+        this->maps_x = maps_x ;
+        this->maps_y = maps_y ;
+        this->maps_s = maps_s ;
     }
 
     void save_trajectories(
@@ -71,19 +78,89 @@ class TrajectoryPlanner
         return best_index ;
     }
 
+    vector<vector<double>> get_smoothed_out_xy_trajectory_from_sd_trajectory(
+        vector<double> &s_trajectory, vector<double> &d_trajectory, double time_per_step)
+    {
+        auto xy_trajectory = convert_frenet_trajectory_to_cartesian_trajectory(
+            s_trajectory, d_trajectory, this->maps_s, this->maps_x, this->maps_y) ;
+
+        vector<double> complete_time_steps ;
+        double time_instant = 0 ;
+
+        for(int index = 0 ; index < s_trajectory.size() ; ++index)
+        {
+            complete_time_steps.push_back(time_instant) ;
+            time_instant += time_per_step ;
+        }
+
+        auto smooth_x_trajectory = get_smoothed_trajectory(complete_time_steps, xy_trajectory[0]) ;
+        auto smooth_y_trajectory = get_smoothed_trajectory(complete_time_steps, xy_trajectory[1]) ;
+
+        vector<vector<double>> smooth_xy_trajectory {smooth_x_trajectory, smooth_y_trajectory} ;
+        return smooth_xy_trajectory ;
+    }
+
     // Return 4D vector with x, y, s and d trajectories
-    void get_trajectory_based_on_previous_trajectory(
+    vector<vector<double>> get_trajectory_based_on_previous_trajectory(
         double car_x, double car_y, double car_s, double car_d,
         vector<double> previous_trajectory_x, vector<double> previous_trajectory_y)
     {
-
         // Get index of closest point in saved trajectory to current car position
-        double index = this->get_index_of_closest_saved_trajectory_point(car_x, car_y) ;
+        double current_position_index = this->get_index_of_closest_saved_trajectory_point(car_x, car_y) ;
 
-        std::cout << "Car is at " << car_x << ", " << car_y << std::endl ;
-        std::cout << "Matched with " << this->saved_x_trajectory[index] << ", " << this->saved_y_trajectory[index] << std::endl ;
+        vector<double> s_trajectory ;
+        vector<double> d_trajectory ;
 
+        // Copy old trajectories from found index till end
+        for(int index = current_position_index ; index < this->saved_s_trajectory.size() ; ++index)
+        {
+            s_trajectory.push_back(this->saved_s_trajectory[index]) ;
+            d_trajectory.push_back(this->saved_d_trajectory[index]) ;
+        }
 
+        double time_horizon = 2.0 ;
+        double steps_per_second = 50.0 ;
+        double time_per_step = 1.0 / steps_per_second ;
+
+        vector<double> initial_s_state = get_initial_s_state(s_trajectory, time_per_step) ;
+        vector<double> final_s_state = get_final_s_state(s_trajectory, time_per_step, time_horizon) ;
+
+        vector<double> initial_d_state = get_initial_d_state(d_trajectory, time_per_step) ;
+        double target_d = 6.0 ;
+        vector<double> final_d_state = {target_d, 0.0, 0.0} ;
+
+        auto s_coefficients = get_jerk_minimizing_trajectory_coefficients(
+            initial_s_state, final_s_state, time_horizon) ;
+
+        auto d_coefficients = get_jerk_minimizing_trajectory_coefficients(
+            initial_d_state, final_d_state, time_horizon) ;
+
+        vector<double> added_time_steps ;
+
+        // End of previous path already includes a point at our initial state, so add new trajectories
+        // from one instant after that
+        double time_instant = time_per_step ;
+
+        while(time_instant <= time_horizon)
+        {
+            added_time_steps.push_back(time_instant) ;
+            time_instant += time_per_step ;
+        }
+
+        auto added_s_trajectory = evaluate_polynomial_over_vector(s_coefficients, added_time_steps) ;
+        auto added_d_trajectory = evaluate_polynomial_over_vector(d_coefficients, added_time_steps) ;
+
+        for(int index = 0 ; index < added_s_trajectory.size() ; ++index)
+        {
+            s_trajectory.push_back(added_s_trajectory[index]) ;
+            d_trajectory.push_back(added_d_trajectory[index]) ;
+        }
+
+        auto xy_trajectory = this->get_smoothed_out_xy_trajectory_from_sd_trajectory(
+            s_trajectory, d_trajectory, time_per_step) ;
+
+        vector<vector<double>> xysd_trajectory {xy_trajectory[0], xy_trajectory[1], s_trajectory, d_trajectory} ;
+        return xysd_trajectory ;
     }
 
 
