@@ -117,23 +117,11 @@ class TrajectoryPlanner
         double target_d = 6.0 ;
         vector<double> final_d_state = get_final_d_state(d_trajectory, target_d, time_horizon, time_per_step) ;
 
-        auto initial_xy_states = get_xy_states_from_sd_states(
-            initial_s_state, initial_d_state, this->maps_s, this->maps_x, this->maps_y, this->maps_dx, this->maps_dy) ;
-
-        auto final_xy_states = get_xy_states_from_sd_states(
-            final_s_state, final_d_state, this->maps_s, this->maps_x, this->maps_y, this->maps_dx, this->maps_dy) ;
-
         auto s_coefficients = get_jerk_minimizing_trajectory_coefficients(
             initial_s_state, final_s_state, time_horizon) ;
 
         auto d_coefficients = get_jerk_minimizing_trajectory_coefficients(
             initial_d_state, final_d_state, time_horizon) ;
-
-        auto x_coefficients = get_jerk_minimizing_trajectory_coefficients(
-            initial_xy_states[0], final_xy_states[0], time_horizon) ;
-
-        auto y_coefficients = get_jerk_minimizing_trajectory_coefficients(
-            initial_xy_states[1], final_xy_states[1], time_horizon) ;
 
         vector<double> added_time_steps ;
 
@@ -150,14 +138,17 @@ class TrajectoryPlanner
         auto added_s_trajectory = evaluate_polynomial_over_vector(s_coefficients, added_time_steps) ;
         auto added_d_trajectory = evaluate_polynomial_over_vector(d_coefficients, added_time_steps) ;
 
-        auto added_x_trajectory = evaluate_polynomial_over_vector(x_coefficients, added_time_steps) ;
-        auto added_y_trajectory = evaluate_polynomial_over_vector(y_coefficients, added_time_steps) ;
+        auto added_xy_trajectory = convert_frenet_trajectory_to_cartesian_trajectory(
+            added_s_trajectory, added_d_trajectory, this->maps_s, this->maps_x, this->maps_y) ;
+
+        auto added_x_trajectory = added_xy_trajectory[0] ;
+        auto added_y_trajectory = added_xy_trajectory[1] ;
 
         // Remove last 10 elements from current trajectory and add them to new trajectory - so we will later smooth over
         // last 10 elements of old trajectory and added trajectory
         if(x_trajectory.size() > 10)
         {
-            for(int index = 0 ; index < 1 ; ++index)
+            for(int index = 0 ; index < 10 ; ++index)
             {
                 auto x = x_trajectory.back() ;
                 x_trajectory.pop_back() ;
@@ -167,23 +158,35 @@ class TrajectoryPlanner
                 y_trajectory.pop_back() ;
                 added_y_trajectory.insert(added_y_trajectory.begin(), y) ;
 
+                auto s = s_trajectory.back() ;
+                s_trajectory.pop_back() ;
+                added_s_trajectory.insert(added_s_trajectory.begin(), s) ;
+
+                auto d = d_trajectory.back() ;
+                d_trajectory.pop_back() ;
+                added_d_trajectory.insert(added_d_trajectory.begin(), d) ;
+
                 auto time = added_time_steps[0] ;
                 double previous_instant_time = time - time_per_step ;
                 added_time_steps.insert(added_time_steps.begin(), previous_instant_time) ;
             }
         }
 
+        auto smooth_s_trajectory = get_smoothed_trajectory(added_time_steps, added_s_trajectory) ;
+        auto smooth_d_trajectory = get_smoothed_trajectory(added_time_steps, added_d_trajectory) ;
+
         auto smooth_x_trajectory = get_smoothed_trajectory(added_time_steps, added_x_trajectory) ;
         auto smooth_y_trajectory = get_smoothed_trajectory(added_time_steps, added_y_trajectory) ;
 
-        for(int index = 0 ; index < added_x_trajectory.size() ; ++index)
+        for(int index = 0 ; index < added_s_trajectory.size() ; ++index)
         {
-            s_trajectory.push_back(added_s_trajectory[index]) ;
-            d_trajectory.push_back(added_d_trajectory[index]) ;
-
             x_trajectory.push_back(smooth_x_trajectory[index]) ;
             y_trajectory.push_back(smooth_y_trajectory[index]) ;
+
+            s_trajectory.push_back(smooth_s_trajectory[index]) ;
+            d_trajectory.push_back(smooth_d_trajectory[index]) ;
         }
+
 
 //        print_trajectory(d_trajectory) ;
 

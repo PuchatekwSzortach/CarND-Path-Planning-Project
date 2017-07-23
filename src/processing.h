@@ -338,14 +338,14 @@ vector<double> get_final_s_state(vector<double> &s_trajectory, double time_horiz
     double ideal_target_speed = 20 ;
     double target_acceleration = (ideal_target_speed - initial_speed) / time_horizon ;
 
-    double max_acceleration = 1.0 ;
+    double max_acceleration = 5.0 ;
     // If acceleration is too large, limit it
     while (std::abs(target_acceleration) > max_acceleration)
     {
         target_acceleration *= 0.9 ;
     }
 
-    double max_jerk = 2.0 ;
+    double max_jerk = 4.0 ;
     // If jerk would be too large, limit it
     while(std::abs(target_acceleration - initial_acceleration) / time_horizon > max_jerk)
     {
