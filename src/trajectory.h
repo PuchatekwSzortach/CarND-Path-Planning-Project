@@ -24,6 +24,24 @@ class Trajectory
     vector<double> d_trajectory ;
     vector<double> x_trajectory ;
     vector<double> y_trajectory ;
+
+    Trajectory(
+        vector<double> x_trajectory, vector<double> y_trajectory,
+        vector<double> s_trajectory, vector<double> d_trajectory,
+        vector<double> initial_s_state, vector<double> final_s_state,
+        vector<double> initial_d_state, vector<double> final_d_state)
+    {
+        this->x_trajectory = x_trajectory ;
+        this->y_trajectory = y_trajectory ;
+        this->s_trajectory = s_trajectory ;
+        this->d_trajectory = d_trajectory ;
+
+        this->initial_s_state = initial_s_state ;
+        this->final_s_state = final_s_state ;
+
+        this->initial_d_state = initial_d_state ;
+        this->final_d_state = final_d_state ;
+    }
 } ;
 
 
@@ -415,7 +433,10 @@ class TrajectoriesGenerator
 
     Trajectory generate_trajectory(
         vector<double> &initial_s_state, vector<double> &final_s_state,
-        vector<double> &initial_d_state, vector<double> &final_d_state, double time_horizon, double time_per_step)
+        vector<double> &initial_d_state, vector<double> &final_d_state,
+        vector<double> initial_x_trajectory, vector<double> initial_y_trajectory,
+        vector<double> initial_s_trajectory, vector<double> initial_d_trajectory,
+        double time_horizon, double time_per_step)
     {
         auto s_coefficients = get_jerk_minimizing_trajectory_coefficients(
             initial_s_state, final_s_state, time_horizon) ;
@@ -444,7 +465,53 @@ class TrajectoriesGenerator
         auto added_x_trajectory = added_xy_trajectory[0] ;
         auto added_y_trajectory = added_xy_trajectory[1] ;
 
-        Trajectory trajectory ;
+        // Remove last 10 elements from current trajectory and add them to new trajectory - so we will later smooth over
+        // last 10 elements of old trajectory and added trajectory
+        if(initial_x_trajectory.size() > 10)
+        {
+            for(int index = 0 ; index < 10 ; ++index)
+            {
+                auto x = initial_x_trajectory.back() ;
+                initial_x_trajectory.pop_back() ;
+                added_x_trajectory.insert(added_x_trajectory.begin(), x) ;
+
+                auto y = initial_y_trajectory.back() ;
+                initial_y_trajectory.pop_back() ;
+                added_y_trajectory.insert(added_y_trajectory.begin(), y) ;
+
+                auto s = initial_s_trajectory.back() ;
+                initial_s_trajectory.pop_back() ;
+                added_s_trajectory.insert(added_s_trajectory.begin(), s) ;
+
+                auto d = initial_d_trajectory.back() ;
+                initial_d_trajectory.pop_back() ;
+                added_d_trajectory.insert(added_d_trajectory.begin(), d) ;
+
+                auto time = added_time_steps[0] ;
+                double previous_instant_time = time - time_per_step ;
+                added_time_steps.insert(added_time_steps.begin(), previous_instant_time) ;
+            }
+        }
+
+        auto smooth_s_trajectory = get_smoothed_trajectory(added_time_steps, added_s_trajectory) ;
+        auto smooth_d_trajectory = get_smoothed_trajectory(added_time_steps, added_d_trajectory) ;
+
+        auto smooth_x_trajectory = get_smoothed_trajectory(added_time_steps, added_x_trajectory) ;
+        auto smooth_y_trajectory = get_smoothed_trajectory(added_time_steps, added_y_trajectory) ;
+
+        for(int index = 0 ; index < added_s_trajectory.size() ; ++index)
+        {
+            initial_x_trajectory.push_back(smooth_x_trajectory[index]) ;
+            initial_y_trajectory.push_back(smooth_y_trajectory[index]) ;
+
+            initial_s_trajectory.push_back(smooth_s_trajectory[index]) ;
+            initial_d_trajectory.push_back(smooth_d_trajectory[index]) ;
+        }
+
+        Trajectory trajectory(
+            initial_x_trajectory, initial_y_trajectory, initial_s_trajectory, initial_d_trajectory,
+            initial_s_state, final_s_state, initial_d_state, final_d_state) ;
+
         return trajectory ;
     }
 
@@ -456,27 +523,27 @@ class TrajectoriesGenerator
         // Get index of closest point in saved trajectory to current car position
         double current_position_index = this->get_index_of_closest_previous_x_trajectory_point(car_x, car_y) ;
 
-        vector<double> x_trajectory ;
-        vector<double> y_trajectory ;
-        vector<double> s_trajectory ;
-        vector<double> d_trajectory ;
+        vector<double> initial_x_trajectory ;
+        vector<double> initial_y_trajectory ;
+        vector<double> initial_s_trajectory ;
+        vector<double> initial_d_trajectory ;
 
         // Copy old trajectories from found index till end
         for(int index = current_position_index ; index < this->previous_x_trajectory.size() ; ++index)
         {
-            x_trajectory.push_back(this->previous_x_trajectory[index]) ;
-            y_trajectory.push_back(this->previous_y_trajectory[index]) ;
+            initial_x_trajectory.push_back(this->previous_x_trajectory[index]) ;
+            initial_y_trajectory.push_back(this->previous_y_trajectory[index]) ;
 
-            s_trajectory.push_back(this->previous_s_trajectory[index]) ;
-            d_trajectory.push_back(this->previous_d_trajectory[index]) ;
+            initial_s_trajectory.push_back(this->previous_s_trajectory[index]) ;
+            initial_d_trajectory.push_back(this->previous_d_trajectory[index]) ;
         }
 
         double time_horizon = 2.0 ;
         double steps_per_second = 50.0 ;
         double time_per_step = 1.0 / steps_per_second ;
 
-        vector<double> initial_s_state = get_initial_s_state(s_trajectory, time_per_step) ;
-        vector<double> initial_d_state = get_initial_d_state(d_trajectory, time_per_step) ;
+        vector<double> initial_s_state = get_initial_s_state(initial_s_trajectory, time_per_step) ;
+        vector<double> initial_d_state = get_initial_d_state(initial_d_trajectory, time_per_step) ;
 
         auto final_s_states = this->generate_final_s_states(initial_s_state, time_horizon, time_per_step) ;
         auto final_d_states = this->generate_final_d_states(initial_d_state, time_horizon, time_per_step) ;
@@ -488,7 +555,9 @@ class TrajectoriesGenerator
             for(auto final_d_state: final_d_states)
             {
                 auto trajectory = this->generate_trajectory(
-                    initial_s_state, final_s_state, initial_d_state, final_d_state, time_horizon, time_per_step) ;
+                    initial_s_state, final_s_state, initial_d_state, final_d_state,
+                    initial_x_trajectory, initial_y_trajectory, initial_s_trajectory, initial_d_trajectory,
+                    time_horizon, time_per_step) ;
 
                 trajectories.push_back(trajectory) ;
             }
