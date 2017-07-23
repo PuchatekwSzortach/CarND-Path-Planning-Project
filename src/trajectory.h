@@ -305,15 +305,147 @@ class TrajectoriesGenerator
         double initial_speed = initial_s_state[1] ;
         double initial_acceleration = initial_s_state[2] ;
 
-        vector<double> speed_values {0, 10, 15, 20, 25} ;
+        vector<double> speed_values {20, 10} ;
+        vector<vector<double>> final_s_states ;
 
-        for(auto speed : speed_values)
+        for(auto speed: speed_values)
         {
-            std::cout << speed << std::endl ;
+            double acceleration = (speed - initial_speed) / time_horizon ;
+
+            double max_acceleration = 5.0 ;
+            // If acceleration is too large, limit it
+            while (std::abs(acceleration) > max_acceleration)
+            {
+                acceleration *= 0.9 ;
+            }
+
+            double max_jerk = 4.0 ;
+            // If jerk would be too large, limit it
+            while(std::abs(acceleration - initial_acceleration) / time_horizon > max_jerk)
+            {
+                acceleration = (0.8 * acceleration) + (0.2 * initial_acceleration) ;
+            }
+
+            // Now compute position and velocity of final state
+            double position =
+                initial_s + (initial_speed * time_horizon) +
+                (0.25 * (initial_acceleration + acceleration) * time_horizon * time_horizon) ;
+
+            double final_speed = initial_speed + (0.5 * (acceleration + acceleration) * time_horizon) ;
+
+            vector<double> final_state {position, final_speed, acceleration} ;
+            final_s_states.push_back(final_state) ;
         }
 
-        vector<vector<double>> final_s_states ;
         return final_s_states ;
+    }
+
+    vector<vector<double>> generate_final_d_states(
+        vector<double> &initial_d_state, double time_horizon, double time_per_step)
+    {
+        double initial_position = initial_d_state[0] ;
+        double initial_speed = initial_d_state[1] ;
+        double initial_acceleration = initial_d_state[2] ;
+
+        double ideal_position = 6 ;
+
+        // Compute final state assuming input from initial state only
+        double final_position_based_on_initial_state =
+            initial_position + (initial_speed * time_horizon) *
+            (0.5 * initial_acceleration * time_horizon * time_horizon) ;
+
+        double final_speed_based_on_initial_state = initial_speed + (initial_acceleration * time_horizon) ;
+
+        double position_difference = ideal_position - final_position_based_on_initial_state ;
+        double final_acceleration = 0 ;
+
+        // We should increase d
+        if(position_difference > 0)
+        {
+            // We are already going in right direction
+            if(final_speed_based_on_initial_state > 0)
+            {
+                final_acceleration = 0 ;
+            }
+            else
+            {
+                final_acceleration = -1 ;
+            }
+
+        }
+        else // We should decrease d
+        {
+            // We need to go in opposite direction
+            if(final_speed_based_on_initial_state > 0)
+            {
+                final_acceleration = -1 ;
+            }
+            else // continue
+            {
+                final_acceleration = 0 ;
+            }
+        }
+
+        double max_acceleration = 1.0 ;
+        // If acceleration is too large, limit it
+        while (std::abs(final_acceleration) > max_acceleration)
+        {
+            final_acceleration *= 0.8 ;
+        }
+
+        double max_jerk = 1.0 ;
+        // If jerk would be too large, limit it
+        while(std::abs(final_acceleration - initial_acceleration) / time_horizon > max_jerk)
+        {
+            final_acceleration = (0.8 * final_acceleration) + (0.2 * initial_acceleration) ;
+        }
+
+        // Compute actual position and speed we can reach
+        double final_position =
+            initial_position + (initial_speed * time_horizon) +
+            (0.25 * (initial_acceleration + final_acceleration) * time_horizon * time_horizon) ;
+
+        double final_speed = initial_speed + (0.5 * (initial_acceleration + final_acceleration) * time_horizon) ;
+
+        vector<double> final_state {final_position, final_speed, final_acceleration} ;
+
+        vector<vector<double>> final_d_states {final_state} ;
+        return final_d_states ;
+    }
+
+    Trajectory generate_trajectory(
+        vector<double> &initial_s_state, vector<double> &final_s_state,
+        vector<double> &initial_d_state, vector<double> &final_d_state, double time_horizon, double time_per_step)
+    {
+        auto s_coefficients = get_jerk_minimizing_trajectory_coefficients(
+            initial_s_state, final_s_state, time_horizon) ;
+
+        auto d_coefficients = get_jerk_minimizing_trajectory_coefficients(
+            initial_d_state, final_d_state, time_horizon) ;
+
+        vector<double> added_time_steps ;
+
+        // End of previous path already includes a point at our initial state, so add new trajectories
+        // from one instant after that
+        double time_instant = time_per_step ;
+
+        while(time_instant <= time_horizon)
+        {
+            added_time_steps.push_back(time_instant) ;
+            time_instant += time_per_step ;
+        }
+
+        auto added_s_trajectory = evaluate_polynomial_over_vector(s_coefficients, added_time_steps) ;
+        auto added_d_trajectory = evaluate_polynomial_over_vector(d_coefficients, added_time_steps) ;
+
+        auto added_xy_trajectory = convert_frenet_trajectory_to_cartesian_trajectory(
+            added_s_trajectory, added_d_trajectory, this->maps_s, this->maps_x, this->maps_y) ;
+
+        auto added_x_trajectory = added_xy_trajectory[0] ;
+        auto added_y_trajectory = added_xy_trajectory[1] ;
+
+        Trajectory trajectory ;
+        return trajectory ;
     }
 
     // Generates candidate trajectories
@@ -347,11 +479,21 @@ class TrajectoriesGenerator
         vector<double> initial_d_state = get_initial_d_state(d_trajectory, time_per_step) ;
 
         auto final_s_states = this->generate_final_s_states(initial_s_state, time_horizon, time_per_step) ;
-
-
-
+        auto final_d_states = this->generate_final_d_states(initial_d_state, time_horizon, time_per_step) ;
 
         vector<Trajectory> trajectories ;
+
+        for(auto final_s_state: final_s_states)
+        {
+            for(auto final_d_state: final_d_states)
+            {
+                auto trajectory = this->generate_trajectory(
+                    initial_s_state, final_s_state, initial_d_state, final_d_state, time_horizon, time_per_step) ;
+
+                trajectories.push_back(trajectory) ;
+            }
+        }
+
         return trajectories ;
     }
 
