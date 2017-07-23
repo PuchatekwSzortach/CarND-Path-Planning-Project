@@ -80,15 +80,12 @@ int main()
 
     }
 
-    TrajectoryPlanner trajectory_planner(
-        map_waypoints_x, map_waypoints_y, map_waypoints_s, map_waypoints_dx, map_waypoints_dy) ;
-
     TrajectoriesGenerator trajectories_generator(
         map_waypoints_x, map_waypoints_y, map_waypoints_s, map_waypoints_dx, map_waypoints_dy) ;
 
     h.onMessage(
         [&map_waypoints_x, &map_waypoints_y, &map_waypoints_s, &map_waypoints_dx, &map_waypoints_dy,
-            &trajectory_planner, &trajectories_generator](
+            &trajectories_generator](
             uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
             uWS::OpCode opCode)
     {
@@ -147,29 +144,23 @@ int main()
 
                     if(should_recompute_trajectory)
                     {
-                        if(trajectory_planner.saved_x_trajectory.size() < 3)
+                        if(trajectories_generator.previous_x_trajectory.size() < 3)
                         {
-                            trajectory_planner.set_saved_trajectories_from_current_state(
-                                car_x, car_y, car_s, car_d) ;
-
                             trajectories_generator.set_previous_trajectories_from_current_state(
                                 car_x, car_y, car_s, car_d) ;
                         }
 
-                        auto trajectory = trajectory_planner.get_trajectory_based_on_previous_trajectory(
+                        auto trajectories = trajectories_generator.generate_trajectories(
                             car_x, car_y, car_s, car_d, previous_path_x, previous_path_y) ;
 
-                        trajectories_generator.generate_trajectories(
-                            car_x, car_y, car_s, car_d, previous_path_x, previous_path_y) ;
+                        auto trajectory = trajectories[0] ;
 
-                        next_x_vals = trajectory[0] ;
-                        next_y_vals = trajectory[1] ;
-
-                        trajectory_planner.save_trajectories(
-                            trajectory[0], trajectory[1], trajectory[2], trajectory[3]) ;
+                        next_x_vals = trajectory.x_trajectory ;
+                        next_y_vals = trajectory.y_trajectory ;
 
                         trajectories_generator.set_previous_trajectories(
-                            trajectory[0], trajectory[1], trajectory[2], trajectory[3]) ;
+                            trajectory.x_trajectory, trajectory.y_trajectory,
+                            trajectory.s_trajectory, trajectory.d_trajectory) ;
 
                     }
                     else // Reuse trajectory
