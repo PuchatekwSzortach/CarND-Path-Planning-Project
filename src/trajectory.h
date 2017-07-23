@@ -3,6 +3,8 @@
 
 
 #include <vector>
+#include <random>
+
 #include "processing.h"
 
 using namespace std ;
@@ -231,6 +233,9 @@ class TrajectoriesGenerator
     vector<double> maps_dx ;
     vector<double> maps_dy ;
 
+    std::default_random_engine random_generator;
+    std::normal_distribution<double> s_speed_distribution ;
+
     TrajectoriesGenerator(
         vector<double> maps_x, vector<double> maps_y, vector<double> maps_s,
         vector<double> maps_dx, vector<double> maps_dy)
@@ -241,6 +246,9 @@ class TrajectoriesGenerator
 
         this->maps_dx = maps_dx ;
         this->maps_dy = maps_dy ;
+
+        this->random_generator = std::default_random_engine() ;
+        this->s_speed_distribution = std::normal_distribution<double>(20.0, 10.0) ;
     }
 
     void set_previous_trajectories(
@@ -252,6 +260,19 @@ class TrajectoriesGenerator
 
         this->previous_s_trajectory = s_trajectory ;
         this->previous_d_trajectory = d_trajectory ;
+    }
+
+    void set_previous_trajectories_from_current_state(double car_x, double car_y, double car_s, double car_d)
+    {
+        for(int index = 0 ; index < 3 ; ++index)
+        {
+            this->previous_x_trajectory.push_back(car_x) ;
+            this->previous_y_trajectory.push_back(car_y) ;
+
+            this->previous_s_trajectory.push_back(car_s) ;
+            this->previous_d_trajectory.push_back(car_d) ;
+        }
+
     }
 
     int get_index_of_closest_previous_x_trajectory_point(double car_x, double car_y)
@@ -276,6 +297,25 @@ class TrajectoriesGenerator
         return best_index ;
     }
 
+    // Generates multiple candidate final s states
+    vector<vector<double>> generate_final_s_states(
+        vector<double> &initial_s_state, double time_horizon, double time_per_step)
+    {
+        double initial_s = initial_s_state[0] ;
+        double initial_speed = initial_s_state[1] ;
+        double initial_acceleration = initial_s_state[2] ;
+
+        vector<double> speed_values {0, 10, 15, 20, 25} ;
+
+        for(auto speed : speed_values)
+        {
+            std::cout << speed << std::endl ;
+        }
+
+        vector<vector<double>> final_s_states ;
+        return final_s_states ;
+    }
+
     // Generates candidate trajectories
     vector<Trajectory> generate_trajectories(
         double car_x, double car_y, double car_s, double car_d,
@@ -284,10 +324,37 @@ class TrajectoriesGenerator
         // Get index of closest point in saved trajectory to current car position
         double current_position_index = this->get_index_of_closest_previous_x_trajectory_point(car_x, car_y) ;
 
+        vector<double> x_trajectory ;
+        vector<double> y_trajectory ;
+        vector<double> s_trajectory ;
+        vector<double> d_trajectory ;
+
+        // Copy old trajectories from found index till end
+        for(int index = current_position_index ; index < this->previous_x_trajectory.size() ; ++index)
+        {
+            x_trajectory.push_back(this->previous_x_trajectory[index]) ;
+            y_trajectory.push_back(this->previous_y_trajectory[index]) ;
+
+            s_trajectory.push_back(this->previous_s_trajectory[index]) ;
+            d_trajectory.push_back(this->previous_d_trajectory[index]) ;
+        }
+
+        double time_horizon = 2.0 ;
+        double steps_per_second = 50.0 ;
+        double time_per_step = 1.0 / steps_per_second ;
+
+        vector<double> initial_s_state = get_initial_s_state(s_trajectory, time_per_step) ;
+        vector<double> initial_d_state = get_initial_d_state(d_trajectory, time_per_step) ;
+
+        auto final_s_states = this->generate_final_s_states(initial_s_state, time_horizon, time_per_step) ;
+
+
+
 
         vector<Trajectory> trajectories ;
         return trajectories ;
     }
+
 
 } ;
 
