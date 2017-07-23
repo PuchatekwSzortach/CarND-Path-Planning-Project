@@ -7,6 +7,24 @@
 
 using namespace std ;
 
+// Stores information about a single trajectory, including its initial and final states
+class Trajectory
+{
+    public:
+
+    vector<double> initial_s_state ;
+    vector<double> final_s_state ;
+
+    vector<double> initial_d_state ;
+    vector<double> final_d_state ;
+
+    vector<double> s_trajectory ;
+    vector<double> d_trajectory ;
+    vector<double> x_trajectory ;
+    vector<double> y_trajectory ;
+} ;
+
+
 
 class TrajectoryPlanner
 {
@@ -192,6 +210,83 @@ class TrajectoryPlanner
 
         vector<vector<double>> xysd_trajectory {x_trajectory, y_trajectory, s_trajectory, d_trajectory} ;
         return xysd_trajectory ;
+    }
+
+} ;
+
+
+// Generates multiple sd trajectories
+class TrajectoriesGenerator
+{
+    public:
+
+    vector<double> previous_x_trajectory ;
+    vector<double> previous_y_trajectory ;
+    vector<double> previous_s_trajectory ;
+    vector<double> previous_d_trajectory ;
+
+    vector<double> maps_x ;
+    vector<double> maps_y ;
+    vector<double> maps_s ;
+    vector<double> maps_dx ;
+    vector<double> maps_dy ;
+
+    TrajectoriesGenerator(
+        vector<double> maps_x, vector<double> maps_y, vector<double> maps_s,
+        vector<double> maps_dx, vector<double> maps_dy)
+    {
+        this->maps_x = maps_x ;
+        this->maps_y = maps_y ;
+        this->maps_s = maps_s ;
+
+        this->maps_dx = maps_dx ;
+        this->maps_dy = maps_dy ;
+    }
+
+    void set_previous_trajectories(
+        vector<double> x_trajectory, vector<double> y_trajectory,
+        vector<double> s_trajectory, vector<double> d_trajectory)
+    {
+        this->previous_x_trajectory = x_trajectory ;
+        this->previous_y_trajectory = y_trajectory ;
+
+        this->previous_s_trajectory = s_trajectory ;
+        this->previous_d_trajectory = d_trajectory ;
+    }
+
+    int get_index_of_closest_previous_x_trajectory_point(double car_x, double car_y)
+    {
+        int best_index = 0 ;
+        double best_distance = distance(
+            car_x, car_y, this->previous_x_trajectory[best_index], this->previous_y_trajectory[best_index]) ;
+
+        for(int index = 1 ; index < this->previous_x_trajectory.size() ; ++index)
+        {
+            double current_distance = distance(
+            car_x, car_y, this->previous_x_trajectory[index], this->previous_y_trajectory[index]) ;
+
+            if(current_distance < best_distance)
+            {
+                best_distance = current_distance ;
+                best_index = index ;
+            }
+
+        }
+
+        return best_index ;
+    }
+
+    // Generates candidate trajectories
+    vector<Trajectory> generate_trajectories(
+        double car_x, double car_y, double car_s, double car_d,
+        vector<double> current_trajectory_x, vector<double> current_trajectory_y)
+    {
+        // Get index of closest point in saved trajectory to current car position
+        double current_position_index = this->get_index_of_closest_previous_x_trajectory_point(car_x, car_y) ;
+
+
+        vector<Trajectory> trajectories ;
+        return trajectories ;
     }
 
 } ;
