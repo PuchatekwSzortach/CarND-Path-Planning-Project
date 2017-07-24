@@ -141,7 +141,8 @@ class TrajectoriesGenerator
 
         double ideal_position = 6 ;
 
-        vector<double> ideal_positions {6} ;
+        vector<double> ideal_positions {2.0, 6.0, 10.0} ;
+
         vector<vector<double>> final_d_states ;
 
         for(auto ideal_position: ideal_positions)

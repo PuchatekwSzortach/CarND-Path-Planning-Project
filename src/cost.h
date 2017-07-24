@@ -25,17 +25,24 @@ class CostComputer
     {
         vector<double> costs ;
 
+        std::cout << "\n\nCosts calculations start for d " << trajectories[0].initial_d_state[0] << std::endl ;
+
         for(int index = 0 ; index < trajectories.size() ; ++index)
         {
             double cost = 0 ;
 
+            trajectories[index].print() ;
+
             cost += this->get_target_speed_cost(trajectories[index]) ;
             cost += this->get_safety_cost(trajectories[index]) ;
+            cost += this->get_lane_change_cost(trajectories[index]) ;
 
             costs.push_back(cost) ;
 
-            std::cout << "Trajectory " << index << " has cost " << cost << std::endl ;
+            std::cout << "Cost: " << cost << std::endl ;
         }
+
+        std::cout << "Finished costs calculations \n\n" << std::endl ;
 
         return get_arg_min(costs) ;
     }
@@ -73,6 +80,11 @@ class CostComputer
         }
 
         return cost ;
+    }
+
+    double get_lane_change_cost(Trajectory &trajectory)
+    {
+        return std::abs(trajectory.final_d_state[0] - trajectory.initial_d_state[0]) ;
     }
 
 

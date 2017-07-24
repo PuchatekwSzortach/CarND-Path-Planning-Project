@@ -366,60 +366,36 @@ vector<double> get_final_s_state(
 vector<double> get_final_d_state(
     vector<double> &initial_d_state, double ideal_position, double time_horizon, double time_between_steps)
 {
+//    std::cout << "Getting from d " << initial_d_state[0] << " to " << ideal_position << std::endl ;
+
     double initial_position = initial_d_state[0] ;
     double initial_speed = initial_d_state[1] ;
     double initial_acceleration = initial_d_state[2] ;
 
-    // Compute final state assuming input from initial state only
-    double final_position_based_on_initial_state =
-        initial_position + (initial_speed * time_horizon) *
-        (0.5 * initial_acceleration * time_horizon * time_horizon) ;
+    // Compute acceleration we need to achieve ideal position
+    double final_acceleration = 4.0 / (time_horizon * time_horizon) *
+        (ideal_position - initial_position - (initial_speed * time_horizon) -
+            (0.25 * initial_acceleration * time_horizon * time_horizon)) ;
 
-    double final_speed_based_on_initial_state = initial_speed + (initial_acceleration * time_horizon) ;
+//    std::cout << "Initial final_acceleration " << final_acceleration << std::endl ;
 
-    double position_difference = ideal_position - final_position_based_on_initial_state ;
-    double final_acceleration = 0 ;
-
-    // We should increase d
-    if(position_difference > 0)
-    {
-        // We are already going in right direction
-        if(final_speed_based_on_initial_state > 0)
-        {
-            final_acceleration = 0 ;
-        }
-        else
-        {
-            final_acceleration = -1 ;
-        }
-
-    }
-    else // We should decrease d
-    {
-        // We need to go in opposite direction
-        if(final_speed_based_on_initial_state > 0)
-        {
-            final_acceleration = -1 ;
-        }
-        else // continue
-        {
-            final_acceleration = 0 ;
-        }
-    }
-
-    double max_acceleration = 1.0 ;
+    double max_acceleration = 5.0 ;
     // If acceleration is too large, limit it
     while (std::abs(final_acceleration) > max_acceleration)
     {
         final_acceleration *= 0.8 ;
     }
 
-    double max_jerk = 1.0 ;
+//    std::cout << "After max acceleration check: " << final_acceleration << std::endl ;
+
+    double max_jerk = 2.0 ;
     // If jerk would be too large, limit it
     while(std::abs(final_acceleration - initial_acceleration) / time_horizon > max_jerk)
     {
         final_acceleration = (0.8 * final_acceleration) + (0.2 * initial_acceleration) ;
     }
+
+//    std::cout << "After max_jerk check: " << final_acceleration << std::endl ;
 
     // Compute actual position and speed we can reach
     double final_position =
