@@ -6,6 +6,7 @@
 #include <random>
 
 #include "processing.h"
+#include "config.h"
 
 using namespace std ;
 
@@ -42,6 +43,16 @@ class Trajectory
         this->initial_d_state = initial_d_state ;
         this->final_d_state = final_d_state ;
     }
+
+    void print()
+    {
+        std::cout << "Trajectory:\n" ;
+        std::cout << "Final s: " << this->final_s_state[0] << ", " << this->final_s_state[1]
+            << ", " << this->final_s_state[2] << std::endl ;
+
+        std::cout << "Final d: " << this->final_d_state[0] << ", " << this->final_d_state[1]
+            << ", " << this->final_d_state[2] << std::endl ;
+    }
 } ;
 
 
@@ -61,12 +72,11 @@ class TrajectoriesGenerator
     vector<double> maps_dx ;
     vector<double> maps_dy ;
 
-    std::default_random_engine random_generator;
-    std::normal_distribution<double> s_speed_distribution ;
+    Configuration configuration ;
 
     TrajectoriesGenerator(
         vector<double> maps_x, vector<double> maps_y, vector<double> maps_s,
-        vector<double> maps_dx, vector<double> maps_dy)
+        vector<double> maps_dx, vector<double> maps_dy, Configuration configuration)
     {
         this->maps_x = maps_x ;
         this->maps_y = maps_y ;
@@ -75,8 +85,7 @@ class TrajectoriesGenerator
         this->maps_dx = maps_dx ;
         this->maps_dy = maps_dy ;
 
-        this->random_generator = std::default_random_engine() ;
-        this->s_speed_distribution = std::normal_distribution<double>(20.0, 10.0) ;
+        this->configuration = configuration ;
     }
 
     void set_previous_trajectories(
@@ -111,7 +120,7 @@ class TrajectoriesGenerator
         double initial_speed = initial_s_state[1] ;
         double initial_acceleration = initial_s_state[2] ;
 
-        vector<double> speed_values {20.0, 10.0} ;
+        vector<double> speed_values {this->configuration.target_speed, 0.5 * this->configuration.target_speed} ;
         vector<vector<double>> final_s_states ;
 
         for(auto speed: speed_values)

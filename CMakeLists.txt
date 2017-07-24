@@ -7,7 +7,7 @@ add_definitions(-std=c++11)
 set(CXX_FLAGS "-Wall")
 set(CMAKE_CXX_FLAGS, "${CXX_FLAGS}")
 
-set(sources src/main.cpp src/processing.h src/trajectory.h src/sensor.h src/cost.h)
+set(sources src/main.cpp src/processing.h src/trajectory.h src/sensor.h src/cost.h src/config.h)
 set(test_sources src/tests.cpp src/processing.h)
 
 

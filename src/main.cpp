@@ -14,6 +14,7 @@
 #include "trajectory.h"
 #include "sensor.h"
 #include "cost.h"
+#include "config.h"
 
 using namespace std;
 
@@ -81,12 +82,14 @@ int main()
 
     }
 
+    Configuration configuration ;
+
     TrajectoriesGenerator trajectories_generator(
-        map_waypoints_x, map_waypoints_y, map_waypoints_s, map_waypoints_dx, map_waypoints_dy) ;
+        map_waypoints_x, map_waypoints_y, map_waypoints_s, map_waypoints_dx, map_waypoints_dy, configuration) ;
 
     h.onMessage(
         [&map_waypoints_x, &map_waypoints_y, &map_waypoints_s, &map_waypoints_dx, &map_waypoints_dy,
-            &trajectories_generator](
+            &trajectories_generator, &configuration](
             uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
             uWS::OpCode opCode)
     {
@@ -161,7 +164,7 @@ int main()
                             sensory_data.push_back(vehicle_data) ;
                         }
 
-                        CostComputer cost_computer(sensory_data) ;
+                        CostComputer cost_computer(configuration, sensory_data) ;
                         int index = cost_computer.get_lowest_cost_trajectory_index(trajectories) ;
 
                         auto trajectory = trajectories[index] ;

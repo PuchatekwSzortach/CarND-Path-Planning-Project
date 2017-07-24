@@ -4,6 +4,7 @@
 
 #include <vector>
 #include "trajectory.h"
+#include "config.h"
 
 using namespace std ;
 
@@ -12,9 +13,11 @@ class CostComputer
     public:
 
     std::vector<std::vector<double>> sensory_data ;
+    Configuration configuration ;
 
-    CostComputer(std::vector<std::vector<double>> sensory_data)
+    CostComputer(Configuration configuration, std::vector<std::vector<double>> sensory_data)
     {
+        this->configuration = configuration ;
         this->sensory_data = sensory_data ;
     }
 
@@ -22,24 +25,31 @@ class CostComputer
     {
         vector<double> costs ;
 
-        for(auto trajectory: trajectories)
+        for(int index = 0 ; index < trajectories.size() ; ++index)
         {
             double cost = 0 ;
 
-            cost += this->get_safety_cost(trajectory) ;
+            cost += this->get_safety_cost(trajectories[index]) ;
+            cost += this->get_target_speed_cost(trajectories[index]) ;
+
             costs.push_back(cost) ;
+
+            std::cout << "Trajectory " << index << " has cost " << cost << std::endl ;
         }
 
         return get_arg_min(costs) ;
     }
 
-    double get_safety_cost(Trajectory &trajectory)
+    double get_target_speed_cost(Trajectory &trajectory)
     {
         double final_speed = trajectory.final_s_state[1] ;
-        return final_speed ;
+        return std::abs(configuration.target_speed - final_speed) / configuration.target_speed ;
     }
 
-
+    double get_safety_cost(Trajectory &trajectory)
+    {
+        return 0 ;
+    }
 
 
 } ;
