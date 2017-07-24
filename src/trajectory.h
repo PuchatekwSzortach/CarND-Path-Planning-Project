@@ -132,67 +132,15 @@ class TrajectoriesGenerator
 
         double ideal_position = 6 ;
 
-        // Compute final state assuming input from initial state only
-        double final_position_based_on_initial_state =
-            initial_position + (initial_speed * time_horizon) *
-            (0.5 * initial_acceleration * time_horizon * time_horizon) ;
+        vector<double> ideal_positions {6} ;
+        vector<vector<double>> final_d_states ;
 
-        double final_speed_based_on_initial_state = initial_speed + (initial_acceleration * time_horizon) ;
-
-        double position_difference = ideal_position - final_position_based_on_initial_state ;
-        double final_acceleration = 0 ;
-
-        // We should increase d
-        if(position_difference > 0)
+        for(auto ideal_position: ideal_positions)
         {
-            // We are already going in right direction
-            if(final_speed_based_on_initial_state > 0)
-            {
-                final_acceleration = 0 ;
-            }
-            else
-            {
-                final_acceleration = -1 ;
-            }
-
-        }
-        else // We should decrease d
-        {
-            // We need to go in opposite direction
-            if(final_speed_based_on_initial_state > 0)
-            {
-                final_acceleration = -1 ;
-            }
-            else // continue
-            {
-                final_acceleration = 0 ;
-            }
+            auto final_state = get_final_d_state(initial_d_state, ideal_position, time_horizon, time_per_step) ;
+            final_d_states.push_back(final_state) ;
         }
 
-        double max_acceleration = 1.0 ;
-        // If acceleration is too large, limit it
-        while (std::abs(final_acceleration) > max_acceleration)
-        {
-            final_acceleration *= 0.8 ;
-        }
-
-        double max_jerk = 1.0 ;
-        // If jerk would be too large, limit it
-        while(std::abs(final_acceleration - initial_acceleration) / time_horizon > max_jerk)
-        {
-            final_acceleration = (0.8 * final_acceleration) + (0.2 * initial_acceleration) ;
-        }
-
-        // Compute actual position and speed we can reach
-        double final_position =
-            initial_position + (initial_speed * time_horizon) +
-            (0.25 * (initial_acceleration + final_acceleration) * time_horizon * time_horizon) ;
-
-        double final_speed = initial_speed + (0.5 * (initial_acceleration + final_acceleration) * time_horizon) ;
-
-        vector<double> final_state {final_position, final_speed, final_acceleration} ;
-
-        vector<vector<double>> final_d_states {final_state} ;
         return final_d_states ;
     }
 

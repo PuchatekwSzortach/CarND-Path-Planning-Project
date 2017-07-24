@@ -328,44 +328,6 @@ vector<double> get_initial_d_state(vector<double> &previous_d_trajectory, double
 }
 
 
-//vector<double> get_final_s_state(vector<double> &s_trajectory, double time_horizon, double time_between_steps)
-//{
-//    auto initial_s_state = get_initial_s_state(s_trajectory, time_between_steps) ;
-//
-//    double initial_s = initial_s_state[0] ;
-//    double initial_speed = initial_s_state[1] ;
-//    double initial_acceleration = initial_s_state[2] ;
-//
-//    double ideal_target_speed = 20 ;
-//    double target_acceleration = (ideal_target_speed - initial_speed) / time_horizon ;
-//
-//    double max_acceleration = 5.0 ;
-//    // If acceleration is too large, limit it
-//    while (std::abs(target_acceleration) > max_acceleration)
-//    {
-//        target_acceleration *= 0.9 ;
-//    }
-//
-//    double max_jerk = 4.0 ;
-//    // If jerk would be too large, limit it
-//    while(std::abs(target_acceleration - initial_acceleration) / time_horizon > max_jerk)
-//    {
-//        target_acceleration = (0.8 * target_acceleration) + (0.2 * initial_acceleration) ;
-//    }
-//
-//    // Now compute position and velocity of final state
-//    double target_position =
-//        initial_s + (initial_speed * time_horizon) +
-//        (0.25 * (initial_acceleration + target_acceleration) * time_horizon * time_horizon) ;
-//
-//    double target_speed = initial_speed + (0.5 * (initial_acceleration + target_acceleration) * time_horizon) ;
-//
-//    vector<double> final_s_state {target_position, target_speed, target_acceleration} ;
-//
-//    return final_s_state ;
-//}
-
-
 vector<double> get_final_s_state(
     vector<double> &initial_s_state, double target_speed, double time_horizon, double time_between_steps)
 {
@@ -402,10 +364,8 @@ vector<double> get_final_s_state(
 
 
 vector<double> get_final_d_state(
-    vector<double> &previous_d_trajectory, double ideal_position, double time_horizon, double time_between_steps)
+    vector<double> &initial_d_state, double ideal_position, double time_horizon, double time_between_steps)
 {
-    auto initial_d_state = get_initial_d_state(previous_d_trajectory, time_between_steps) ;
-
     double initial_position = initial_d_state[0] ;
     double initial_speed = initial_d_state[1] ;
     double initial_acceleration = initial_d_state[2] ;
