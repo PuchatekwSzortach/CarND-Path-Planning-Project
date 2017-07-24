@@ -4,6 +4,8 @@
 
 #include <vector>
 #include <random>
+#include <algorithm>
+#include <cmath>
 
 #include "processing.h"
 #include "config.h"
@@ -141,7 +143,7 @@ class TrajectoriesGenerator
 
         double ideal_position = 6 ;
 
-        vector<double> ideal_positions {2.0, 6.0, 10.0} ;
+        vector<double> ideal_positions {2.0, 3.0, 5.0, 6.0, 7.0, 9.0, 10.0} ;
 
         vector<vector<double>> final_d_states ;
 
@@ -242,8 +244,12 @@ class TrajectoriesGenerator
         vector<double> initial_s_trajectory ;
         vector<double> initial_d_trajectory ;
 
-        // Copy old trajectories from found index till end
-        for(int index = current_position_index ; index < this->previous_x_trajectory.size() ; ++index)
+        // Copy old trajectories from found index till some time
+        int end_index = current_position_index + std::min(
+            int(this->configuration.trajectory_update_interval / this->configuration.time_per_step),
+            int(this->previous_x_trajectory.size())) ;
+
+        for(int index = current_position_index ; index < end_index ; ++index)
         {
             initial_x_trajectory.push_back(this->previous_x_trajectory[index]) ;
             initial_y_trajectory.push_back(this->previous_y_trajectory[index]) ;
@@ -252,9 +258,8 @@ class TrajectoriesGenerator
             initial_d_trajectory.push_back(this->previous_d_trajectory[index]) ;
         }
 
-        double time_horizon = 2.0 ;
-        double steps_per_second = 50.0 ;
-        double time_per_step = 1.0 / steps_per_second ;
+        double time_horizon = configuration.trajectory_time - configuration.trajectory_update_interval ;
+        double time_per_step = this->configuration.time_per_step ;
 
         vector<double> initial_s_state = get_initial_s_state(initial_s_trajectory, time_per_step) ;
         vector<double> initial_d_state = get_initial_d_state(initial_d_trajectory, time_per_step) ;

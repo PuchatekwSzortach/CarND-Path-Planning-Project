@@ -87,9 +87,11 @@ int main()
     TrajectoriesGenerator trajectories_generator(
         map_waypoints_x, map_waypoints_y, map_waypoints_s, map_waypoints_dx, map_waypoints_dy, configuration) ;
 
+    auto last_trajectory_update_time = std::chrono::steady_clock::now();
+
     h.onMessage(
         [&map_waypoints_x, &map_waypoints_y, &map_waypoints_s, &map_waypoints_dx, &map_waypoints_dy,
-            &trajectories_generator, &configuration](
+            &trajectories_generator, &configuration, &last_trajectory_update_time](
             uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
             uWS::OpCode opCode)
     {
@@ -138,16 +140,22 @@ int main()
 
                     json msgJson;
 
-                    int update_steps_per_second = 50 ;
-
                     vector<double> next_x_vals ;
                     vector<double> next_y_vals ;
 
-                    // Check if trajectory extends less than 1 sec into future
-                    bool should_recompute_trajectory = double(previous_path_x.size()) / update_steps_per_second < 1.0 ;
+                    auto time_now = std::chrono::steady_clock::now();
+
+                    double elapsed_seconds = std::chrono::duration_cast<
+                            std::chrono::duration<double> >(time_now - last_trajectory_update_time).count();
+
+                    bool should_recompute_trajectory = elapsed_seconds > configuration.trajectory_update_interval ;
 
                     if(should_recompute_trajectory)
                     {
+                        std::cout << "previous_path_x size: " << previous_path_x.size() << std::endl;
+                        std::cout << "Elapsed time: " << elapsed_seconds << ", updating" << std::endl ;
+                        last_trajectory_update_time = time_now ;
+
                         if(trajectories_generator.previous_x_trajectory.size() < 3)
                         {
                             trajectories_generator.set_previous_trajectories_from_current_state(
@@ -175,7 +183,6 @@ int main()
                         trajectories_generator.set_previous_trajectories(
                             trajectory.x_trajectory, trajectory.y_trajectory,
                             trajectory.s_trajectory, trajectory.d_trajectory) ;
-
                     }
                     else // Reuse trajectory
                     {

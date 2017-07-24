@@ -25,24 +25,24 @@ class CostComputer
     {
         vector<double> costs ;
 
-        std::cout << "\n\nCosts calculations start for d " << trajectories[0].initial_d_state[0] << std::endl ;
+//        std::cout << "\n\nCosts calculations start for d " << trajectories[0].initial_d_state[0] << std::endl ;
 
         for(int index = 0 ; index < trajectories.size() ; ++index)
         {
             double cost = 0 ;
 
-            trajectories[index].print() ;
+//            trajectories[index].print() ;
 
-            cost += this->get_target_speed_cost(trajectories[index]) ;
+            cost += 100.0 * this->get_target_speed_cost(trajectories[index]) ;
             cost += this->get_safety_cost(trajectories[index]) ;
             cost += this->get_lane_change_cost(trajectories[index]) ;
 
             costs.push_back(cost) ;
 
-            std::cout << "Cost: " << cost << std::endl ;
+//            std::cout << "Cost: " << cost << std::endl ;
         }
 
-        std::cout << "Finished costs calculations \n\n" << std::endl ;
+//        std::cout << "Finished costs calculations \n\n" << std::endl ;
 
         return get_arg_min(costs) ;
     }
@@ -62,7 +62,7 @@ class CostComputer
             double vehicle_d = vehicle_data[6] ;
 
             // If vehicle is in the same lane - a very simplistic check for now
-            if(std::abs(trajectory.final_d_state[0] - vehicle_d) < 1.5)
+            if(std::abs(trajectory.final_d_state[0] - vehicle_d) < 2.0)
             {
                 double start_s = trajectory.initial_s_state[0] ;
                 double finish_s = trajectory.final_s_state[0] ;
@@ -74,6 +74,9 @@ class CostComputer
                 {
                     double difference = finish_s - vehicle_start_s ;
                     cost += difference * difference ;
+
+//                    std::cout << "\tVehicle detected " << vehicle_start_s - start_s << " metres ahead" << std::endl ;
+//                    std::cout << "\tAdding cost " << difference * difference << std::endl ;
                 }
             }
 
