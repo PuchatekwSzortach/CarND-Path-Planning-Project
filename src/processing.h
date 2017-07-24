@@ -516,4 +516,16 @@ int get_index_of_closest_previous_x_trajectory_point(
 }
 
 
+// Moves n elements from end of first vector to beginning of second vector
+void move_n_elements(vector<double> &first, vector<double> &second, int n)
+{
+    for(int index = 0 ; index < n ; ++index)
+    {
+        auto element = first.back() ;
+        first.pop_back() ;
+        second.insert(second.begin(), element) ;
+    }
+}
+
+
 #endif //PATH_PLANNING_PROCESSING_H

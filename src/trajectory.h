@@ -178,28 +178,18 @@ class TrajectoriesGenerator
         auto added_x_trajectory = added_xy_trajectory[0] ;
         auto added_y_trajectory = added_xy_trajectory[1] ;
 
-        // Remove last 10 elements from current trajectory and add them to new trajectory - so we will later smooth over
+        // Remove last n elements from current trajectory and add them to new trajectory - so we will later smooth over
         // last 10 elements of old trajectory and added trajectory
-        if(initial_x_trajectory.size() > 10)
+        int elements_count = 10 ;
+        if(initial_x_trajectory.size() > elements_count)
         {
-            for(int index = 0 ; index < 10 ; ++index)
+            move_n_elements(initial_x_trajectory, added_x_trajectory, elements_count) ;
+            move_n_elements(initial_y_trajectory, added_y_trajectory, elements_count) ;
+            move_n_elements(initial_s_trajectory, added_s_trajectory, elements_count) ;
+            move_n_elements(initial_d_trajectory, added_d_trajectory, elements_count) ;
+
+            for(int index = 0 ; index < elements_count ; ++index)
             {
-                auto x = initial_x_trajectory.back() ;
-                initial_x_trajectory.pop_back() ;
-                added_x_trajectory.insert(added_x_trajectory.begin(), x) ;
-
-                auto y = initial_y_trajectory.back() ;
-                initial_y_trajectory.pop_back() ;
-                added_y_trajectory.insert(added_y_trajectory.begin(), y) ;
-
-                auto s = initial_s_trajectory.back() ;
-                initial_s_trajectory.pop_back() ;
-                added_s_trajectory.insert(added_s_trajectory.begin(), s) ;
-
-                auto d = initial_d_trajectory.back() ;
-                initial_d_trajectory.pop_back() ;
-                added_d_trajectory.insert(added_d_trajectory.begin(), d) ;
-
                 double time = added_time_steps[0] ;
                 double previous_instant_time = time - time_per_step ;
                 added_time_steps.insert(added_time_steps.begin(), previous_instant_time) ;
