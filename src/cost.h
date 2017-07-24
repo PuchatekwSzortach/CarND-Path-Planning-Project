@@ -30,7 +30,7 @@ class CostComputer
             double cost = 0 ;
 
             cost += this->get_target_speed_cost(trajectories[index]) ;
-            cost += 100.0 * this->get_safety_cost(trajectories[index]) ;
+            cost += this->get_safety_cost(trajectories[index]) ;
 
             costs.push_back(cost) ;
 
@@ -65,7 +65,8 @@ class CostComputer
                 // Simplified computations for now
                 if(start_s < vehicle_start_s && vehicle_start_s < finish_s)
                 {
-                    cost += (finish_s - vehicle_start_s) / finish_s ;
+                    double difference = finish_s - vehicle_start_s ;
+                    cost += difference * difference ;
                 }
             }
 

@@ -59,7 +59,7 @@ def trajectory_analysis():
 def cost_analysis():
 
     x = np.linspace(0.01, 100, 1000)
-    y = np.exp(1/x)
+    y = x * x
 
     plt.plot(x, y)
     plt.show()
