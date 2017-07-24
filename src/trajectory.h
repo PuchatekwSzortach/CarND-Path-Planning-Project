@@ -103,28 +103,6 @@ class TrajectoriesGenerator
 
     }
 
-    int get_index_of_closest_previous_x_trajectory_point(double car_x, double car_y)
-    {
-        int best_index = 0 ;
-        double best_distance = distance(
-            car_x, car_y, this->previous_x_trajectory[best_index], this->previous_y_trajectory[best_index]) ;
-
-        for(int index = 1 ; index < this->previous_x_trajectory.size() ; ++index)
-        {
-            double current_distance = distance(
-                car_x, car_y, this->previous_x_trajectory[index], this->previous_y_trajectory[index]) ;
-
-            if(current_distance < best_distance)
-            {
-                best_distance = current_distance ;
-                best_index = index ;
-            }
-
-        }
-
-        return best_index ;
-    }
-
     // Generates multiple candidate final s states
     vector<vector<double>> generate_final_s_states(
         vector<double> &initial_s_state, double time_horizon, double time_per_step)
@@ -138,30 +116,7 @@ class TrajectoriesGenerator
 
         for(auto speed: speed_values)
         {
-            double acceleration = (speed - initial_speed) / time_horizon ;
-
-            double max_acceleration = 5.0 ;
-            // If acceleration is too large, limit it
-            while (std::abs(acceleration) > max_acceleration)
-            {
-                acceleration *= 0.9 ;
-            }
-
-            double max_jerk = 4.0 ;
-            // If jerk would be too large, limit it
-            while(std::abs(acceleration - initial_acceleration) / time_horizon > max_jerk)
-            {
-                acceleration = (0.8 * acceleration) + (0.2 * initial_acceleration) ;
-            }
-
-            // Now compute position and velocity of final state
-            double position =
-                initial_s + (initial_speed * time_horizon) +
-                (0.25 * (initial_acceleration + acceleration) * time_horizon * time_horizon) ;
-
-            double final_speed = initial_speed + (0.5 * (initial_acceleration + acceleration) * time_horizon) ;
-
-            vector<double> final_state {position, final_speed, acceleration} ;
+            auto final_state = get_final_s_state(initial_s_state, speed, time_horizon, time_per_step) ;
             final_s_states.push_back(final_state) ;
         }
 
@@ -331,7 +286,8 @@ class TrajectoriesGenerator
         vector<double> current_trajectory_x, vector<double> current_trajectory_y)
     {
         // Get index of closest point in saved trajectory to current car position
-        double current_position_index = this->get_index_of_closest_previous_x_trajectory_point(car_x, car_y) ;
+        double current_position_index = get_index_of_closest_previous_x_trajectory_point(
+            car_x, car_y, this->previous_x_trajectory, this->previous_y_trajectory) ;
 
         vector<double> initial_x_trajectory ;
         vector<double> initial_y_trajectory ;

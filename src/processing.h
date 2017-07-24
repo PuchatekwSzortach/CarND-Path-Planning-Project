@@ -328,42 +328,78 @@ vector<double> get_initial_d_state(vector<double> &previous_d_trajectory, double
 }
 
 
-vector<double> get_final_s_state(vector<double> &s_trajectory, double time_horizon, double time_between_steps)
-{
-    auto initial_s_state = get_initial_s_state(s_trajectory, time_between_steps) ;
+//vector<double> get_final_s_state(vector<double> &s_trajectory, double time_horizon, double time_between_steps)
+//{
+//    auto initial_s_state = get_initial_s_state(s_trajectory, time_between_steps) ;
+//
+//    double initial_s = initial_s_state[0] ;
+//    double initial_speed = initial_s_state[1] ;
+//    double initial_acceleration = initial_s_state[2] ;
+//
+//    double ideal_target_speed = 20 ;
+//    double target_acceleration = (ideal_target_speed - initial_speed) / time_horizon ;
+//
+//    double max_acceleration = 5.0 ;
+//    // If acceleration is too large, limit it
+//    while (std::abs(target_acceleration) > max_acceleration)
+//    {
+//        target_acceleration *= 0.9 ;
+//    }
+//
+//    double max_jerk = 4.0 ;
+//    // If jerk would be too large, limit it
+//    while(std::abs(target_acceleration - initial_acceleration) / time_horizon > max_jerk)
+//    {
+//        target_acceleration = (0.8 * target_acceleration) + (0.2 * initial_acceleration) ;
+//    }
+//
+//    // Now compute position and velocity of final state
+//    double target_position =
+//        initial_s + (initial_speed * time_horizon) +
+//        (0.25 * (initial_acceleration + target_acceleration) * time_horizon * time_horizon) ;
+//
+//    double target_speed = initial_speed + (0.5 * (initial_acceleration + target_acceleration) * time_horizon) ;
+//
+//    vector<double> final_s_state {target_position, target_speed, target_acceleration} ;
+//
+//    return final_s_state ;
+//}
 
+
+vector<double> get_final_s_state(
+    vector<double> &initial_s_state, double target_speed, double time_horizon, double time_between_steps)
+{
     double initial_s = initial_s_state[0] ;
     double initial_speed = initial_s_state[1] ;
     double initial_acceleration = initial_s_state[2] ;
 
-    double ideal_target_speed = 20 ;
-    double target_acceleration = (ideal_target_speed - initial_speed) / time_horizon ;
+    double acceleration = (target_speed - initial_speed) / time_horizon ;
 
     double max_acceleration = 5.0 ;
     // If acceleration is too large, limit it
-    while (std::abs(target_acceleration) > max_acceleration)
+    while (std::abs(acceleration) > max_acceleration)
     {
-        target_acceleration *= 0.9 ;
+        acceleration *= 0.9 ;
     }
 
     double max_jerk = 4.0 ;
     // If jerk would be too large, limit it
-    while(std::abs(target_acceleration - initial_acceleration) / time_horizon > max_jerk)
+    while(std::abs(acceleration - initial_acceleration) / time_horizon > max_jerk)
     {
-        target_acceleration = (0.8 * target_acceleration) + (0.2 * initial_acceleration) ;
+        acceleration = (0.8 * acceleration) + (0.2 * initial_acceleration) ;
     }
 
     // Now compute position and velocity of final state
-    double target_position =
+    double position =
         initial_s + (initial_speed * time_horizon) +
-        (0.25 * (initial_acceleration + target_acceleration) * time_horizon * time_horizon) ;
+        (0.25 * (initial_acceleration + acceleration) * time_horizon * time_horizon) ;
 
-    double target_speed = initial_speed + (0.5 * (initial_acceleration + target_acceleration) * time_horizon) ;
+    double final_speed = initial_speed + (0.5 * (initial_acceleration + acceleration) * time_horizon) ;
 
-    vector<double> final_s_state {target_position, target_speed, target_acceleration} ;
-
-    return final_s_state ;
+    vector<double> final_state {position, final_speed, acceleration} ;
+    return final_state ;
 }
+
 
 vector<double> get_final_d_state(
     vector<double> &previous_d_trajectory, double ideal_position, double time_horizon, double time_between_steps)
@@ -495,5 +531,29 @@ void print_trajectory(vector<double> &trajectory)
 
     std::cout << "]," << std::endl ;
 }
+
+
+int get_index_of_closest_previous_x_trajectory_point(
+    double car_x, double car_y, vector<double> &x_trajectory, vector<double> &y_trajectory)
+{
+    int best_index = 0 ;
+    double best_distance = distance(car_x, car_y, x_trajectory[best_index], y_trajectory[best_index]) ;
+
+    for(int index = 1 ; index < x_trajectory.size() ; ++index)
+    {
+        double current_distance = distance(
+            car_x, car_y, x_trajectory[index], y_trajectory[index]) ;
+
+        if(current_distance < best_distance)
+        {
+            best_distance = current_distance ;
+            best_index = index ;
+        }
+
+    }
+
+    return best_index ;
+}
+
 
 #endif //PATH_PLANNING_PROCESSING_H
