@@ -15,7 +15,7 @@ def evaluate_polynomial(coefficients, xs):
     return ys
 
 
-def main():
+def trajectory_analysis():
 
     trajectories = [
         [6.16483, 6.16483, 6.16483, 6.16483, 6.16483, 6.16483, 6.16483, 6.16483, 6.16483, 6.16483, 6.16483, 6.16483,
@@ -54,6 +54,20 @@ def main():
 
     plt.scatter(x, trajectory)
     plt.show()
+
+
+def cost_analysis():
+
+    x = np.linspace(0.01, 100, 1000)
+    y = np.exp(1/x)
+
+    plt.plot(x, y)
+    plt.show()
+
+
+def main():
+
+    cost_analysis()
 
 
 if __name__ == "__main__":

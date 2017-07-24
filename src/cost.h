@@ -29,8 +29,8 @@ class CostComputer
         {
             double cost = 0 ;
 
-            cost += this->get_safety_cost(trajectories[index]) ;
             cost += this->get_target_speed_cost(trajectories[index]) ;
+            cost += 100.0 * this->get_safety_cost(trajectories[index]) ;
 
             costs.push_back(cost) ;
 
@@ -48,7 +48,30 @@ class CostComputer
 
     double get_safety_cost(Trajectory &trajectory)
     {
-        return 0 ;
+        double cost = 0 ;
+
+        for(auto vehicle_data: sensory_data)
+        {
+            double vehicle_d = vehicle_data[6] ;
+
+            // If vehicle is in the same lane - a very simplistic check for now
+            if(std::abs(trajectory.final_d_state[0] - vehicle_d) < 1.5)
+            {
+                double start_s = trajectory.initial_s_state[0] ;
+                double finish_s = trajectory.final_s_state[0] ;
+
+                double vehicle_start_s = vehicle_data[5] ;
+
+                // Simplified computations for now
+                if(start_s < vehicle_start_s && vehicle_start_s < finish_s)
+                {
+                    cost += (finish_s - vehicle_start_s) / finish_s ;
+                }
+            }
+
+        }
+
+        return cost ;
     }
 
 

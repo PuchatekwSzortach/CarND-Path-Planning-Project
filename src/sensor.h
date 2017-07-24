@@ -29,24 +29,45 @@ class SensorDataHandler
 
     void sense()
     {
+//        for(auto vehicle_data : data)
+//        {
+//            double vehicle_id = vehicle_data[0] ;
+//            double vehicle_s = vehicle_data[5] ;
+//            double vehicle_d = vehicle_data[6] ;
+//
+//            if(vehicle_s > this->car_s && vehicle_s - this->car_s < 15.0 )
+//            {
+//                if(std::abs(this->car_d - vehicle_d) < 1.0)
+//                {
+//                    std::cout << "Vehicle " << vehicle_id << " is "
+//                        << vehicle_s - this->car_s << " metres in front of us" << std::endl ;
+//                }
+//
+//
+//            }
+//
+//        }
+    }
+
+    void is_vehicle_in_front_of_us()
+    {
         for(auto vehicle_data : data)
         {
             double vehicle_id = vehicle_data[0] ;
             double vehicle_s = vehicle_data[5] ;
             double vehicle_d = vehicle_data[6] ;
 
-            if(vehicle_s > this->car_s && vehicle_s - this->car_s < 15.0 )
+            if(vehicle_s > this->car_s && vehicle_s - this->car_s < 40.0 )
             {
-                if(std::abs(this->car_d - vehicle_d) < 1.0)
+                if(std::abs(this->car_d - vehicle_d) < 1.5)
                 {
                     std::cout << "Vehicle " << vehicle_id << " is "
                         << vehicle_s - this->car_s << " metres in front of us" << std::endl ;
                 }
 
-
             }
-
         }
+
     }
 
 

@@ -186,8 +186,8 @@ int main()
                         }
                     }
 
-                    SensorDataHandler sensor(sensor_fusion, car_s, car_d) ;
-                    sensor.sense() ;
+//                    SensorDataHandler sensor(sensor_fusion, car_s, car_d) ;
+//                    sensor.is_vehicle_in_front_of_us() ;
 
                     // TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
                     msgJson["next_x"] = next_x_vals;
