@@ -85,6 +85,16 @@ void test_evaluate_polynomial_square()
     assert(-11.0 == evaluate_polynomial(coefficients, -3.0)) ;
 }
 
+void test_get_arg_min()
+{
+    vector<double> values {0.8, 0.2, 0.7} ;
+
+    int expected = 1 ;
+    int actual = get_arg_min(values) ;
+
+    assert(expected == actual) ;
+}
+
 
 int main()
 {
@@ -94,6 +104,8 @@ int main()
 
     test_evaluate_polynomial_linear() ;
     test_evaluate_polynomial_square() ;
+
+    test_get_arg_min() ;
 
     std::cout << "All tests passed" << std::endl ;
 }

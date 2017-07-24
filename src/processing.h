@@ -528,4 +528,21 @@ void move_n_elements(vector<double> &first, vector<double> &second, int n)
 }
 
 
+int get_arg_min(vector<double> &values)
+{
+    int best_index = 0 ;
+    double best_value = values[best_index] ;
+
+    for(int index = 1 ; index < values.size() ; ++index)
+    {
+        if(values[index] < best_value)
+        {
+            best_value = values[index] ;
+            best_index = index ;
+        }
+    }
+
+    return best_index ;
+}
+
 #endif //PATH_PLANNING_PROCESSING_H

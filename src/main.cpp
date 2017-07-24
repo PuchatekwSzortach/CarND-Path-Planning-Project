@@ -154,7 +154,14 @@ int main()
                         auto trajectories = trajectories_generator.generate_trajectories(
                             car_x, car_y, car_s, car_d, previous_path_x, previous_path_y) ;
 
-                        CostComputer cost_computer ;
+                        vector<vector<double>> sensory_data ;
+
+                        for(auto vehicle_data: sensor_fusion)
+                        {
+                            sensory_data.push_back(vehicle_data) ;
+                        }
+
+                        CostComputer cost_computer(sensory_data) ;
                         int index = cost_computer.get_lowest_cost_trajectory_index(trajectories) ;
 
                         auto trajectory = trajectories[index] ;
