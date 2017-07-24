@@ -13,6 +13,7 @@
 #include "processing.h"
 #include "trajectory.h"
 #include "sensor.h"
+#include "cost.h"
 
 using namespace std;
 
@@ -153,7 +154,10 @@ int main()
                         auto trajectories = trajectories_generator.generate_trajectories(
                             car_x, car_y, car_s, car_d, previous_path_x, previous_path_y) ;
 
-                        auto trajectory = trajectories[0] ;
+                        CostComputer cost_computer ;
+                        int index = cost_computer.get_lowest_cost_trajectory_index(trajectories) ;
+
+                        auto trajectory = trajectories[index] ;
 
                         next_x_vals = trajectory.x_trajectory ;
                         next_y_vals = trajectory.y_trajectory ;

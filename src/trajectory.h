@@ -111,7 +111,7 @@ class TrajectoriesGenerator
         double initial_speed = initial_s_state[1] ;
         double initial_acceleration = initial_s_state[2] ;
 
-        vector<double> speed_values {20.0} ;
+        vector<double> speed_values {20.0, 10.0} ;
         vector<vector<double>> final_s_states ;
 
         for(auto speed: speed_values)
