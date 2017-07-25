@@ -126,7 +126,13 @@ class TrajectoriesGenerator
         double initial_speed = initial_s_state[1] ;
         double initial_acceleration = initial_s_state[2] ;
 
-        vector<double> speed_values {this->configuration.target_speed, 0.5 * this->configuration.target_speed} ;
+        vector<double> fractions {1.0, 0.75, 0.5, 0.25} ;
+        vector<double> speed_values ;
+        for(double fraction: fractions)
+        {
+            speed_values.push_back(fraction * this->configuration.target_speed) ;
+        }
+
         vector<vector<double>> final_s_states ;
 
         for(auto speed: speed_values)
@@ -147,7 +153,7 @@ class TrajectoriesGenerator
 
         double ideal_position = 6 ;
 
-        vector<double> ideal_positions {2.0, 6.0, 10.0} ;
+        vector<double> ideal_positions {2.0, 2.5, 5.5, 6.0, 6.5, 9.5, 10.0} ;
 
         vector<vector<double>> final_d_states ;
 

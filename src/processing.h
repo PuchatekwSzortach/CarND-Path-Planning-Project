@@ -422,7 +422,7 @@ vector<double> get_final_d_state(
 
 //    std::cout << "Initial final_acceleration " << final_acceleration << std::endl ;
 
-    double max_acceleration = 5.0 ;
+    double max_acceleration = 3.0 ;
     // If acceleration is too large, limit it
     while (std::abs(final_acceleration) > max_acceleration)
     {

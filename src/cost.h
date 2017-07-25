@@ -23,6 +23,8 @@ class CostComputer
     vector<double> maps_dx ;
     vector<double> maps_dy ;
 
+    double huge_cost ;
+
     CostComputer(
         Configuration configuration, std::vector<std::vector<double>> sensory_data,
         vector<double> &maps_x, vector<double> &maps_y, vector<double> &maps_s,
@@ -37,6 +39,8 @@ class CostComputer
 
         this->maps_dx = maps_dx ;
         this->maps_dy = maps_dy ;
+
+        this->huge_cost = 10000 ;
     }
 
     int get_lowest_cost_trajectory_index(vector<Trajectory> &trajectories)
@@ -45,12 +49,18 @@ class CostComputer
 
         for(int index = 0 ; index < trajectories.size() ; ++index)
         {
-//            trajectories[index].print() ;
+            auto trajectory = trajectories[index] ;
+//            trajectory.print() ;
             double cost = 0 ;
 
-            cost += 100.0 * this->get_target_speed_cost(trajectories[index]) ;
-            cost += this->get_safety_cost_two(trajectories[index]) ;
-            cost += this->get_lane_change_cost(trajectories[index]) ;
+            cost += 100.0 * this->get_target_speed_cost(trajectory) ;
+
+            cost += this->get_speeding_cost(trajectory) ;
+            cost += this->get_tangential_acceleration_cost(trajectory) ;
+            cost += this->get_normal_acceleration_cost(trajectory) ;
+
+            cost += this->get_safety_cost(trajectory) ;
+            cost += this->get_lane_change_cost(trajectory) ;
 
             costs.push_back(cost) ;
 
@@ -65,36 +75,6 @@ class CostComputer
     }
 
     double get_safety_cost(Trajectory &trajectory)
-    {
-        double cost = 0 ;
-
-        for(auto vehicle_data: sensory_data)
-        {
-            double vehicle_d = vehicle_data[6] ;
-
-            // If vehicle is in the same lane - a very simplistic check for now
-            if(std::abs(trajectory.final_d_state[0] - vehicle_d) < 2.0)
-            {
-                double start_s = trajectory.initial_s_state[0] ;
-                double finish_s = trajectory.final_s_state[0] ;
-
-                double vehicle_start_s = vehicle_data[5] ;
-
-                // Simplified computations for now
-                if(start_s < vehicle_start_s && vehicle_start_s < finish_s)
-                {
-                    double difference = finish_s - vehicle_start_s ;
-                    cost += difference * difference ;
-
-                }
-            }
-
-        }
-
-        return cost ;
-    }
-
-    double get_safety_cost_two(Trajectory &trajectory)
     {
         double cost = 0 ;
 
@@ -129,7 +109,7 @@ class CostComputer
             double vehicle_d_right = std::max(vehicle_d, vehicle_final_d) ;
 
             double safety_s_distance = 20.0 ;
-            double safety_d_distance = 1.0 ;
+            double safety_d_distance = 2.0 ;
 
             bool are_we_keeping_lane = ((std::abs(ego_initial_d[0] - ego_final_d[0])) < safety_d_distance) ;
 
@@ -155,9 +135,6 @@ class CostComputer
             }
             else // We need to look at cars behind us as well as in all from current lane to destination lane
             {
-                // Look at cars up to 1 second behind us
-                double start_s = ego_initial_s[0] - (ego_initial_s[1] * 1.0) ;
-
                 // And at all cars that are in lanes from our current lane to final lane
                 double left_d = std::min(ego_initial_d[0], ego_final_d[0]) - safety_d_distance ;
                 double right_d = std::max(ego_initial_d[0], ego_final_d[0]) + safety_d_distance ;
@@ -166,7 +143,7 @@ class CostComputer
                 if(left_d < vehicle_d && vehicle_d < right_d)
                 {
                     double lane_changing_safety_s_distance = 10.0 ;
-                    double lane_changing_safety_d_distance = 2.0 ;
+                    double lane_changing_safety_d_distance = 3.0 ;
 
                     bool will_collide = will_ego_collide_with_vehicle(
                         trajectory.s_trajectory, trajectory.d_trajectory,
@@ -177,22 +154,8 @@ class CostComputer
                     if(will_collide)
                     {
                         // Arbitrary high collision cost
-                        cost += 10000 ;
+                        cost += this->huge_cost ;
                     }
-
-
-                    /*// If vehicle is between where we are now and will be at the end of trajectory
-                    // This is simplistic - after all by end of trajectory we might be in different lane than
-                    // vehicle
-                    if(start_s < vehicle_s && vehicle_s < ego_final_s[0])
-                    {
-                        // And we risk passing vehicle at the end of trajectory
-                        if(vehicle_final_s < ego_final_s[0] + safety_s_distance)
-                        {
-                            double difference = ego_final_s[0] + safety_s_distance - vehicle_final_s ;
-                            cost += difference * difference ;
-                        }
-                    }*/
 
                 }
             }
@@ -206,6 +169,73 @@ class CostComputer
         return std::abs(trajectory.final_d_state[0] - trajectory.initial_d_state[0]) ;
     }
 
+    // Cost for going over speed limit at any point of the trajectory
+    double get_speeding_cost(Trajectory &trajectory)
+    {
+        double cost = 0 ;
+
+        auto s_trajectory = trajectory.s_trajectory ;
+
+        for(int index = 1 ; index < s_trajectory.size() ; ++index)
+        {
+            auto speed = (s_trajectory[index] - s_trajectory[index - 1]) / this->configuration.time_per_step ;
+
+            if(speed > this->configuration.speed_limit)
+            {
+                cost += this->huge_cost ;
+            }
+
+        }
+
+        return cost ;
+
+    }
+
+    double get_tangential_acceleration_cost(Trajectory &trajectory)
+    {
+        double cost = 0 ;
+
+        auto s_trajectory = trajectory.s_trajectory ;
+
+        for(int index = 2 ; index < s_trajectory.size() ; ++index)
+        {
+            auto first_speed = (s_trajectory[index - 1] - s_trajectory[index - 2]) / this->configuration.time_per_step ;
+            auto second_speed = (s_trajectory[index] - s_trajectory[index - 1]) / this->configuration.time_per_step ;
+
+            double acceleration = (second_speed - first_speed) / this->configuration.time_per_step ;
+
+            if(std::abs(acceleration) > this->configuration.tangential_acceleration_limit)
+            {
+                cost += this->huge_cost ;
+            }
+
+        }
+
+        return cost ;
+    }
+
+    double get_normal_acceleration_cost(Trajectory &trajectory)
+    {
+        double cost = 0 ;
+
+        auto d_trajectory = trajectory.d_trajectory ;
+
+        for(int index = 2 ; index < d_trajectory.size() ; ++index)
+        {
+            auto first_speed = (d_trajectory[index - 1] - d_trajectory[index - 2]) / this->configuration.time_per_step ;
+            auto second_speed = (d_trajectory[index] - d_trajectory[index - 1]) / this->configuration.time_per_step ;
+
+            double acceleration = (second_speed - first_speed) / this->configuration.time_per_step ;
+
+            if(std::abs(acceleration) > this->configuration.normal_acceleration_limit)
+            {
+                cost += this->huge_cost ;
+            }
+
+        }
+
+        return cost ;
+    }
 
 } ;
 
