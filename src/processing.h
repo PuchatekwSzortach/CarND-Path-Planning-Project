@@ -290,7 +290,8 @@ vector<double> get_smoothed_trajectory(vector<double> &time_steps, vector<double
     }
 
     // Select a few indices to use for spline interpolation
-    vector<int> indices = {0, int(0.25 * size), int(0.5 * size), int(0.75 * size), int(size) - 1} ;
+//    vector<int> indices = {0, int(0.25 * size), int(0.5 * size), int(0.75 * size), int(size) - 1} ;
+    vector<int> indices = {0, int(0.25 * size), int(0.75 * size), int(size) - 1} ;
 
     vector<double> time_args ;
     vector<double> trajectory_args ;

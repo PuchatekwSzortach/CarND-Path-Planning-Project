@@ -56,8 +56,8 @@ class CostComputer
             cost += 100.0 * this->get_target_speed_cost(trajectory) ;
 
             cost += this->get_speeding_cost(trajectory) ;
-            cost += this->get_tangential_acceleration_cost(trajectory) ;
-            cost += this->get_normal_acceleration_cost(trajectory) ;
+//            cost += this->get_tangential_acceleration_cost(trajectory) ;
+//            cost += this->get_normal_acceleration_cost(trajectory) ;
 //            cost += this->get_sharp_turns_cost(trajectory) ;
 
             cost += this->huge_cost * this->get_safety_cost(trajectory) ;

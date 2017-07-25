@@ -247,6 +247,107 @@ class TrajectoriesGenerator
         return trajectory ;
     }
 
+    Trajectory generate_trajectory_two(
+        vector<double> initial_x_trajectory, vector<double> initial_y_trajectory,
+        vector<double> initial_s_trajectory, vector<double> initial_d_trajectory,
+        vector<double> next_segment_initial_s_state, vector<double> final_s_state,
+        vector<double> next_segment_initial_d_state, vector<double> final_d_state,
+        double time_horizon, double time_per_step)
+    {
+        auto s_coefficients = get_jerk_minimizing_trajectory_coefficients(
+            next_segment_initial_s_state, final_s_state, time_horizon) ;
+
+        auto d_coefficients = get_jerk_minimizing_trajectory_coefficients(
+            next_segment_initial_d_state, final_d_state, time_horizon) ;
+
+        // End of previous path already includes a point at our initial state, so add new trajectories
+        // from one instant after that
+        vector<double> new_segment_time_steps ;
+        double time_instant = time_per_step ;
+
+        while(time_instant <= time_horizon)
+        {
+            new_segment_time_steps.push_back(time_instant) ;
+            time_instant += time_per_step ;
+        }
+
+        auto new_segment_s_trajectory = evaluate_polynomial_over_vector(s_coefficients, new_segment_time_steps) ;
+        auto new_segment_d_trajectory = evaluate_polynomial_over_vector(d_coefficients, new_segment_time_steps) ;
+
+        auto new_segment_xy_trajectory = convert_frenet_trajectory_to_cartesian_trajectory(
+            new_segment_s_trajectory, new_segment_d_trajectory, this->maps_s, this->maps_x, this->maps_y) ;
+
+        auto new_segment_x_trajectory = new_segment_xy_trajectory[0] ;
+        auto new_segment_y_trajectory = new_segment_xy_trajectory[1] ;
+
+        // Smooth out new segments
+        auto new_segment_x_trajectory_smooth = get_smoothed_trajectory(new_segment_time_steps, new_segment_x_trajectory) ;
+        auto new_segment_y_trajectory_smooth = get_smoothed_trajectory(new_segment_time_steps, new_segment_y_trajectory) ;
+        auto new_segment_s_trajectory_smooth = get_smoothed_trajectory(new_segment_time_steps, new_segment_s_trajectory) ;
+        auto new_segment_d_trajectory_smooth = get_smoothed_trajectory(new_segment_time_steps, new_segment_d_trajectory) ;
+
+
+        vector<double> blending_s_segment, blending_d_segment, blending_x_segment, blending_y_segment ;
+
+        // Move last n elements from end of initial trajectory and beginning of new trajectory into
+        // a blending segment
+        int elements_count = 40 ;
+        if(initial_x_trajectory.size() > elements_count)
+        {
+            move_n_elements_from_end_of_first_to_beginning_of_second(initial_x_trajectory, blending_x_segment, elements_count) ;
+            move_n_elements_from_end_of_first_to_beginning_of_second(initial_y_trajectory, blending_y_segment, elements_count) ;
+            move_n_elements_from_end_of_first_to_beginning_of_second(initial_s_trajectory, blending_s_segment, elements_count) ;
+            move_n_elements_from_end_of_first_to_beginning_of_second(initial_d_trajectory, blending_d_segment, elements_count) ;
+
+            move_n_elements_from_beginning_of_first_to_end_of_second(new_segment_x_trajectory_smooth, blending_x_segment, elements_count) ;
+            move_n_elements_from_beginning_of_first_to_end_of_second(new_segment_y_trajectory_smooth, blending_y_segment, elements_count) ;
+            move_n_elements_from_beginning_of_first_to_end_of_second(new_segment_s_trajectory_smooth, blending_s_segment, elements_count) ;
+            move_n_elements_from_beginning_of_first_to_end_of_second(new_segment_d_trajectory_smooth, blending_d_segment, elements_count) ;
+
+            vector<double> blending_time ;
+            double time_instant = 0 ;
+            for(int index = 0 ; index < blending_x_segment.size() ; ++index)
+            {
+                time_instant += time_per_step ;
+                blending_time.push_back(time_instant) ;
+            }
+
+            auto smooth_blending_x_segment = get_smoothed_trajectory(blending_time, blending_x_segment) ;
+            auto smooth_blending_y_segment = get_smoothed_trajectory(blending_time, blending_y_segment) ;
+            auto smooth_blending_s_segment = get_smoothed_trajectory(blending_time, blending_s_segment) ;
+            auto smooth_blending_d_segment = get_smoothed_trajectory(blending_time, blending_d_segment) ;
+
+            for(int index = 0 ; index < smooth_blending_x_segment.size() ; ++index)
+            {
+                initial_x_trajectory.push_back(smooth_blending_x_segment[index]) ;
+                initial_y_trajectory.push_back(smooth_blending_y_segment[index]) ;
+                initial_s_trajectory.push_back(smooth_blending_s_segment[index]) ;
+                initial_d_trajectory.push_back(smooth_blending_d_segment[index]) ;
+            }
+        }
+
+        for(int index = 0 ; index < new_segment_x_trajectory_smooth.size() ; ++index)
+        {
+            initial_x_trajectory.push_back(new_segment_x_trajectory_smooth[index]) ;
+            initial_y_trajectory.push_back(new_segment_y_trajectory_smooth[index]) ;
+
+            initial_s_trajectory.push_back(new_segment_s_trajectory_smooth[index]) ;
+            initial_d_trajectory.push_back(new_segment_d_trajectory_smooth[index]) ;
+        }
+
+        auto initial_s_state = get_s_state_at_trajectory_start(initial_s_trajectory, time_per_step) ;
+        auto initial_d_state = get_d_state_at_trajectory_start(initial_d_trajectory, time_per_step) ;
+
+        Trajectory trajectory(
+            initial_x_trajectory, initial_y_trajectory, initial_s_trajectory, initial_d_trajectory,
+            initial_s_state, final_s_state, initial_d_state, final_d_state) ;
+
+        return trajectory ;
+
+    }
+
+
+
     // Generates candidate trajectories
     vector<Trajectory> generate_trajectories(
         double car_x, double car_y, double car_s, double car_d,
@@ -293,7 +394,7 @@ class TrajectoriesGenerator
         {
             for(auto final_d_state: final_d_states)
             {
-                auto trajectory = this->generate_trajectory(
+                auto trajectory = this->generate_trajectory_two(
                     initial_x_trajectory, initial_y_trajectory, initial_s_trajectory, initial_d_trajectory,
                     next_segment_initial_s_state, final_s_state, next_segment_initial_d_state, final_d_state,
                     time_horizon, time_per_step) ;
