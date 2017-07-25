@@ -161,6 +161,7 @@ class CostComputer
             }
 
         }
+
         return cost ;
     }
 
