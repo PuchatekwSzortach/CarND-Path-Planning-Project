@@ -165,7 +165,23 @@ class CostComputer
                 // If vehicle is in one of lanes we will cross
                 if(left_d < vehicle_d && vehicle_d < right_d)
                 {
-                    // If vehicle is between where we are now and will be at the end of trajectory
+                    double lane_changing_safety_s_distance = 10.0 ;
+                    double lane_changing_safety_d_distance = 2.0 ;
+
+                    bool will_collide = will_ego_collide_with_vehicle(
+                        trajectory.s_trajectory, trajectory.d_trajectory,
+                        vehicle_s, vehicle_d, vehicle_sd_speed[0], vehicle_sd_speed[1],
+                        this->configuration.time_per_step,
+                        lane_changing_safety_s_distance, lane_changing_safety_d_distance) ;
+
+                    if(will_collide)
+                    {
+                        // Arbitrary high collision cost
+                        cost += 10000 ;
+                    }
+
+
+                    /*// If vehicle is between where we are now and will be at the end of trajectory
                     // This is simplistic - after all by end of trajectory we might be in different lane than
                     // vehicle
                     if(start_s < vehicle_s && vehicle_s < ego_final_s[0])
@@ -176,7 +192,7 @@ class CostComputer
                             double difference = ego_final_s[0] + safety_s_distance - vehicle_final_s ;
                             cost += difference * difference ;
                         }
-                    }
+                    }*/
 
                 }
             }

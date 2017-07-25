@@ -611,4 +611,34 @@ int get_arg_min(vector<double> &values)
     return best_index ;
 }
 
+
+bool will_ego_collide_with_vehicle(
+    vector<double> &ego_s_trajectory, vector<double> &ego_d_trajectory,
+    double vehicle_s, double vehicle_d, double vehicle_vs, double vehicle_vd, double time_per_step,
+    double safety_s_distance, double safety_d_distance)
+{
+    for(int index = 0 ; index < ego_s_trajectory.size() ; index++)
+    {
+        double ego_s = ego_s_trajectory[index] ;
+        double ego_d = ego_d_trajectory[index] ;
+
+        double time = time_per_step * double(index) ;
+
+        double current_vehicle_s = vehicle_s + (vehicle_vs * time) ;
+        double current_vehicle_d = vehicle_d + (vehicle_vd * time) ;
+
+        double s_distance = ego_s - current_vehicle_s ;
+        double d_distance = ego_d - current_vehicle_d ;
+
+        if(std::abs(s_distance) < safety_s_distance && std::abs(d_distance) < safety_d_distance)
+        {
+            return true ;
+        }
+
+    }
+
+    // No collision detected
+    return false ;
+}
+
 #endif //PATH_PLANNING_PROCESSING_H
