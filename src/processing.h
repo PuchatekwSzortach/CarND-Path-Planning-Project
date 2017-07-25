@@ -594,6 +594,19 @@ void move_n_elements(vector<double> &first, vector<double> &second, int n)
 }
 
 
+void move_n_elements_from_end_of_first_to_beginning_of_second(vector<double> &first, vector<double> &second, int n)
+{
+    second.insert(second.begin(), first.end() - n, first.end()) ;
+    first.erase(first.end() - n, first.end()) ;
+}
+
+void move_n_elements_from_beginning_of_first_to_end_of_second(vector<double> &first, vector<double> &second, int n)
+{
+    second.insert(second.end(), first.begin(), first.begin() + n) ;
+    first.erase(first.begin(), first.begin() + n) ;
+}
+
+
 int get_arg_min(vector<double> &values)
 {
     int best_index = 0 ;
@@ -651,6 +664,15 @@ double get_arc_angle(
 
     double cos_c = ((a * a) + (b * b) - (c * c)) / (2.0 * a * b) ;
     return std::acos(cos_c) ;
+}
+
+
+void print_vector(vector<double> &data)
+{
+    for(auto element: data)
+    {
+        std::cout << element << std::endl ;
+    }
 }
 
 

@@ -107,7 +107,7 @@ class TrajectoriesGenerator
 
     void set_previous_trajectories_from_current_state(double car_x, double car_y, double car_s, double car_d)
     {
-        for(int index = 0 ; index < 3 ; ++index)
+        for(int index = 0 ; index < 20 ; ++index)
         {
             this->previous_x_trajectory.push_back(car_x) ;
             this->previous_y_trajectory.push_back(car_y) ;
@@ -127,6 +127,8 @@ class TrajectoriesGenerator
         double initial_acceleration = initial_s_state[2] ;
 
         vector<double> fractions {1.0, 0.75, 0.5, 0.25} ;
+//        vector<double> fractions {1.0} ;
+
 
         vector<double> speed_values ;
         for(double fraction: fractions)
@@ -155,6 +157,7 @@ class TrajectoriesGenerator
         double ideal_position = 6 ;
 
         vector<double> ideal_positions {2.0, 6.0, 10.0} ;
+//        vector<double> ideal_positions {6.0} ;
 
         vector<vector<double>> final_d_states ;
 
@@ -206,10 +209,10 @@ class TrajectoriesGenerator
         int elements_count = 10 ;
         if(initial_x_trajectory.size() > elements_count)
         {
-            move_n_elements(initial_x_trajectory, added_x_trajectory, elements_count) ;
-            move_n_elements(initial_y_trajectory, added_y_trajectory, elements_count) ;
-            move_n_elements(initial_s_trajectory, added_s_trajectory, elements_count) ;
-            move_n_elements(initial_d_trajectory, added_d_trajectory, elements_count) ;
+            move_n_elements_from_end_of_first_to_beginning_of_second(initial_x_trajectory, added_x_trajectory, elements_count) ;
+            move_n_elements_from_end_of_first_to_beginning_of_second(initial_y_trajectory, added_y_trajectory, elements_count) ;
+            move_n_elements_from_end_of_first_to_beginning_of_second(initial_s_trajectory, added_s_trajectory, elements_count) ;
+            move_n_elements_from_end_of_first_to_beginning_of_second(initial_d_trajectory, added_d_trajectory, elements_count) ;
 
             for(int index = 0 ; index < elements_count ; ++index)
             {
@@ -296,6 +299,7 @@ class TrajectoriesGenerator
                     time_horizon, time_per_step) ;
 
                 trajectories.push_back(trajectory) ;
+
             }
         }
 

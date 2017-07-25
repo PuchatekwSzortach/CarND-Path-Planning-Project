@@ -268,6 +268,58 @@ void test_get_arc_angle_120_deg_angle()
 }
 
 
+void test_move_n_elements_from_end_of_first_to_beginning_of_second()
+{
+    vector<double> first {1, 2, 3, 4, 5} ;
+    vector<double> second {6, 7, 8} ;
+    int n = 3 ;
+
+    vector<double> expected_first {1, 2} ;
+    vector<double> expected_second {3, 4, 5, 6, 7, 8} ;
+
+    move_n_elements_from_end_of_first_to_beginning_of_second(first, second, n) ;
+
+    assert(expected_first.size() == first.size()) ;
+    assert(expected_second.size() == second.size()) ;
+
+    for(int index = 0 ; index < expected_first.size() ; ++index)
+    {
+        assert(expected_first[index] == first[index]) ;
+    }
+
+    for(int index = 0 ; index < expected_second.size() ; ++index)
+    {
+        assert(expected_second[index] == second[index]) ;
+    }
+}
+
+
+void test_move_n_elements_from_beginning_of_first_to_end_of_second()
+{
+    vector<double> first {1, 2, 3, 4, 5} ;
+    vector<double> second {6, 7, 8} ;
+    int n = 3 ;
+
+    vector<double> expected_first {4, 5} ;
+    vector<double> expected_second {6, 7, 8, 1, 2, 3} ;
+
+    move_n_elements_from_beginning_of_first_to_end_of_second(first, second, n) ;
+
+    assert(expected_first.size() == first.size()) ;
+    assert(expected_second.size() == second.size()) ;
+
+    for(int index = 0 ; index < expected_first.size() ; ++index)
+    {
+        assert(expected_first[index] == first[index]) ;
+    }
+
+    for(int index = 0 ; index < expected_second.size() ; ++index)
+    {
+        assert(expected_second[index] == second[index]) ;
+    }
+}
+
+
 
 int main()
 {
@@ -289,6 +341,9 @@ int main()
     test_get_arc_angle_all_in_one_line() ;
     test_get_arc_angle_90_deg_angle() ;
     test_get_arc_angle_120_deg_angle() ;
+
+    test_move_n_elements_from_end_of_first_to_beginning_of_second() ;
+    test_move_n_elements_from_beginning_of_first_to_end_of_second() ;
 
     std::cout << "All tests passed" << std::endl ;
 }
