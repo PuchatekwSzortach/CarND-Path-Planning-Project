@@ -214,6 +214,61 @@ void test_will_ego_collide_with_vehicle_crossing_lanes_collision_speed()
 }
 
 
+void test_get_arc_angle_all_in_one_line()
+{
+    double first_x = 0 ;
+    double first_y = 0 ;
+
+    double second_x = 1 ;
+    double second_y = 0 ;
+
+    double third_x = 2 ;
+    double third_y = 0 ;
+
+    double expected = pi() ;
+    double actual = get_arc_angle(first_x, first_y, second_x, second_y, third_x, third_y) ;
+
+    assert(std::abs(expected - actual) < 0.001) ;
+}
+
+
+void test_get_arc_angle_90_deg_angle()
+{
+    double first_x = 1 ;
+    double first_y = 1 ;
+
+    double second_x = 2 ;
+    double second_y = 1 ;
+
+    double third_x = 2 ;
+    double third_y = 2 ;
+
+    double expected = pi() / 2.0 ;
+    double actual = get_arc_angle(first_x, first_y, second_x, second_y, third_x, third_y) ;
+
+    assert(std::abs(expected - actual) < 0.001) ;
+}
+
+
+void test_get_arc_angle_120_deg_angle()
+{
+    double first_x = 1 ;
+    double first_y = 1 ;
+
+    double second_x = 2 ;
+    double second_y = 1 ;
+
+    double third_x = 3 ;
+    double third_y = 2.732 ;
+
+    double expected = 2.0 * pi() / 3.0 ;
+    double actual = get_arc_angle(first_x, first_y, second_x, second_y, third_x, third_y) ;
+
+    assert(std::abs(expected - actual) < 0.001) ;
+}
+
+
+
 int main()
 {
     test_get_jerk_minimizing_trajectory_coefficients_simple() ;
@@ -230,6 +285,10 @@ int main()
     test_will_ego_collide_with_vehicle_same_lane_safe_speed() ;
     test_will_ego_collide_with_vehicle_crossing_lanes_safe_speed() ;
     test_will_ego_collide_with_vehicle_crossing_lanes_collision_speed() ;
+
+    test_get_arc_angle_all_in_one_line() ;
+    test_get_arc_angle_90_deg_angle() ;
+    test_get_arc_angle_120_deg_angle() ;
 
     std::cout << "All tests passed" << std::endl ;
 }

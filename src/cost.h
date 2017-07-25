@@ -40,7 +40,7 @@ class CostComputer
         this->maps_dx = maps_dx ;
         this->maps_dy = maps_dy ;
 
-        this->huge_cost = 10000 ;
+        this->huge_cost = 100000 ;
     }
 
     int get_lowest_cost_trajectory_index(vector<Trajectory> &trajectories)
@@ -58,9 +58,9 @@ class CostComputer
             cost += this->get_speeding_cost(trajectory) ;
             cost += this->get_tangential_acceleration_cost(trajectory) ;
             cost += this->get_normal_acceleration_cost(trajectory) ;
-            cost += this->get_sharp_turns_cost(trajectory) ;
+//            cost += this->get_sharp_turns_cost(trajectory) ;
 
-            cost += this->get_safety_cost(trajectory) ;
+            cost += this->huge_cost * this->get_safety_cost(trajectory) ;
             cost += this->get_lane_change_cost(trajectory) ;
 
             costs.push_back(cost) ;
@@ -128,8 +128,7 @@ class CostComputer
                         // And we risk passing vehicle at the end of trajectory
                         if(vehicle_final_s < ego_final_s[0] + safety_s_distance)
                         {
-                            double difference = ego_final_s[0] + safety_s_distance - vehicle_final_s ;
-                            cost += difference * difference ;
+                            cost += 1.0 ;
                         }
                     }
                 }
@@ -155,7 +154,7 @@ class CostComputer
                     if(will_collide)
                     {
                         // Arbitrary high collision cost
-                        cost += this->huge_cost ;
+                        cost += 1.0 ;
                     }
 
                 }
@@ -255,11 +254,12 @@ class CostComputer
         double third_x = trajectory.x_trajectory[third_index] ;
         double third_y = trajectory.y_trajectory[third_index] ;
 
-        double second_angle = std::atan2(second_y - first_y, second_x - first_x) ;
-        double third_angle = std::atan2(third_y - first_y, third_x - first_x) ;
+        double angle = get_arc_angle(first_x, first_y, second_x, second_y, third_x, third_y) ;
 
-        double angle_change = rad2deg(std::abs(third_angle - second_angle)) ;
-        return angle_change * angle_change ;
+        double angle_degrees = rad2deg(angle) ;
+
+        double difference_from_line = std::abs(angle_degrees - 180.0) ;
+        return difference_from_line * difference_from_line ;
     }
 
 } ;

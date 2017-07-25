@@ -641,4 +641,17 @@ bool will_ego_collide_with_vehicle(
     return false ;
 }
 
+
+double get_arc_angle(
+    double first_x, double first_y, double second_x, double second_y, double third_x, double third_y)
+{
+    double a = distance(first_x, first_y, second_x, second_y) ;
+    double b = distance(second_x, second_y, third_x, third_y) ;
+    double c = distance(first_x, first_y, third_x, third_y) ;
+
+    double cos_c = ((a * a) + (b * b) - (c * c)) / (2.0 * a * b) ;
+    return std::acos(cos_c) ;
+}
+
+
 #endif //PATH_PLANNING_PROCESSING_H
