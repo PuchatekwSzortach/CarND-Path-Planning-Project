@@ -58,6 +58,7 @@ class CostComputer
             cost += this->get_speeding_cost(trajectory) ;
             cost += this->get_tangential_acceleration_cost(trajectory) ;
             cost += this->get_normal_acceleration_cost(trajectory) ;
+            cost += this->get_sharp_turns_cost(trajectory) ;
 
             cost += this->get_safety_cost(trajectory) ;
             cost += this->get_lane_change_cost(trajectory) ;
@@ -235,6 +236,30 @@ class CostComputer
         }
 
         return cost ;
+    }
+
+    double get_sharp_turns_cost(Trajectory &trajectory)
+    {
+        double cost = 0 ;
+
+        int first_index = 0 ;
+        int second_index = int(this->configuration.trajectory_update_interval / this->configuration.time_per_step) ;
+        int third_index = 2 * second_index ;
+
+        double first_x = trajectory.x_trajectory[first_index] ;
+        double first_y = trajectory.y_trajectory[first_index] ;
+
+        double second_x = trajectory.x_trajectory[second_index] ;
+        double second_y = trajectory.y_trajectory[second_index] ;
+
+        double third_x = trajectory.x_trajectory[third_index] ;
+        double third_y = trajectory.y_trajectory[third_index] ;
+
+        double second_angle = std::atan2(second_y - first_y, second_x - first_x) ;
+        double third_angle = std::atan2(third_y - first_y, third_x - first_x) ;
+
+        double angle_change = rad2deg(std::abs(third_angle - second_angle)) ;
+        return angle_change * angle_change ;
     }
 
 } ;
