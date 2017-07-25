@@ -129,25 +129,55 @@ class CostComputer
             double vehicle_d_right = std::max(vehicle_d, vehicle_final_d) ;
 
             double safety_s_distance = 20.0 ;
+            double safety_d_distance = 1.0 ;
 
-            // If vehicle is in lane we want to be at the end of the trajectory (simplistic)
-            if(std::abs(vehicle_d - ego_final_d[0]) < 1.5)
+            bool are_we_keeping_lane = ((std::abs(ego_initial_d[0] - ego_final_d[0])) < safety_d_distance) ;
+
+            // We only need to look at cars in front of us in our lane
+            if(are_we_keeping_lane)
             {
-                bool are_we_keeping_lane = ((std::abs(ego_initial_d[0] - ego_final_d[0])) < 1.0) ;
+                double start_s = ego_initial_s[0] ;
 
-                // If we are not changing lanes, only look at s ahead of us
-                // Else look at s some distance behind us as well
-                double start_s = are_we_keeping_lane ? ego_initial_s[0] : ego_initial_s[0] - (ego_initial_s[1] * 1.0) ;
-
-                // If vehicle is between where we are now and will be at the end of trajectory
-                if(start_s < vehicle_s && vehicle_s < ego_final_s[0])
+                // If vehicle is in our lane
+                if(std::abs(vehicle_d - ego_initial_d[0]) < safety_d_distance)
                 {
-                    // And we risk passing vehicle at the end of trajectory
-                    if(vehicle_final_s < ego_final_s[0] + safety_s_distance)
+                    // If vehicle is between where we are now and will be at the end of trajectory
+                    if(start_s < vehicle_s && vehicle_s < ego_final_s[0])
                     {
-                        double difference = ego_final_s[0] + safety_s_distance - vehicle_final_s ;
-                        cost += difference * difference ;
+                        // And we risk passing vehicle at the end of trajectory
+                        if(vehicle_final_s < ego_final_s[0] + safety_s_distance)
+                        {
+                            double difference = ego_final_s[0] + safety_s_distance - vehicle_final_s ;
+                            cost += difference * difference ;
+                        }
                     }
+                }
+            }
+            else // We need to look at cars behind us as well as in all from current lane to destination lane
+            {
+                // Look at cars up to 1 second behind us
+                double start_s = ego_initial_s[0] - (ego_initial_s[1] * 1.0) ;
+
+                // And at all cars that are in lanes from our current lane to final lane
+                double left_d = std::min(ego_initial_d[0], ego_final_d[0]) - safety_d_distance ;
+                double right_d = std::max(ego_initial_d[0], ego_final_d[0]) + safety_d_distance ;
+
+                // If vehicle is in one of lanes we will cross
+                if(left_d < vehicle_d && vehicle_d < right_d)
+                {
+                    // If vehicle is between where we are now and will be at the end of trajectory
+                    // This is simplistic - after all by end of trajectory we might be in different lane than
+                    // vehicle
+                    if(start_s < vehicle_s && vehicle_s < ego_final_s[0])
+                    {
+                        // And we risk passing vehicle at the end of trajectory
+                        if(vehicle_final_s < ego_final_s[0] + safety_s_distance)
+                        {
+                            double difference = ego_final_s[0] + safety_s_distance - vehicle_final_s ;
+                            cost += difference * difference ;
+                        }
+                    }
+
                 }
             }
 
