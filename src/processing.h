@@ -227,10 +227,26 @@ vector<double> evaluate_polynomial_over_vector(vector<double> &coefficients, vec
 }
 
 
+double get_first_s_speed(vector<double> &s_trajectory, double time_interval)
+{
+    return (s_trajectory[1] - s_trajectory[0]) / time_interval ;
+}
+
+
 double get_last_s_speed(vector<double> &s_trajectory, double time_interval)
 {
     int size = s_trajectory.size() ;
     return (s_trajectory[size - 1] - s_trajectory[size - 2]) / time_interval ;
+}
+
+
+double get_first_s_acceleration(vector<double> &s_trajectory, double time_interval)
+{
+
+    double first_speed = (s_trajectory[1] - s_trajectory[0]) / time_interval ;
+    double second_speed = (s_trajectory[2] - s_trajectory[1]) / time_interval ;
+
+    return (second_speed - first_speed) / time_interval ;
 }
 
 
@@ -300,17 +316,44 @@ vector<double> get_smoothed_trajectory(vector<double> &time_steps, vector<double
 }
 
 
-vector<double> get_initial_s_state(vector<double> &s_trajectory, double time_between_steps)
+vector<double> get_s_state_at_trajectory_start(vector<double> &s_trajectory, double time_between_steps)
 {
-    double initial_s = s_trajectory.back() ;
-    double initial_speed = get_last_s_speed(s_trajectory, time_between_steps) ;
-    double initial_acceleration = get_last_s_acceleration(s_trajectory, time_between_steps) ;
+    double s = s_trajectory.front() ;
+    double speed = get_first_s_speed(s_trajectory, time_between_steps) ;
+    double acceleration = get_first_s_acceleration(s_trajectory, time_between_steps) ;
 
-    vector<double> initial_s_state {initial_s, initial_speed, initial_acceleration} ;
-    return initial_s_state ;
+    return vector<double> {s, speed, acceleration} ;
 }
 
-vector<double> get_initial_d_state(vector<double> &previous_d_trajectory, double time_between_steps)
+
+
+vector<double> get_s_state_at_trajectory_end(vector<double> &s_trajectory, double time_between_steps)
+{
+    double s = s_trajectory.back() ;
+    double speed = get_last_s_speed(s_trajectory, time_between_steps) ;
+    double acceleration = get_last_s_acceleration(s_trajectory, time_between_steps) ;
+
+    return vector<double> {s, speed, acceleration} ;
+}
+
+
+vector<double> get_d_state_at_trajectory_start(vector<double> &d_trajectory, double time_between_steps)
+{
+
+    double d = d_trajectory[0] ;
+    double second_d = d_trajectory[1] ;
+    double third_d = d_trajectory[2] ;
+
+    double speed = (second_d - d) / time_between_steps ;
+    double second_speed = (third_d - second_d) / time_between_steps ;
+
+    double acceleration = (second_speed - speed) / time_between_steps ;
+
+    return vector<double> {d, speed, acceleration} ;
+}
+
+
+vector<double> get_d_state_at_trajectory_end(vector<double> &previous_d_trajectory, double time_between_steps)
 {
     int size = previous_d_trajectory.size() ;
 
@@ -409,17 +452,16 @@ vector<double> get_final_d_state(
 }
 
 
-vector<vector<double>> get_xy_states_from_sd_states(
-    vector<double> &s_state, vector<double> &d_state,
-    vector<double> &maps_s, vector<double> &maps_x, vector<double> &maps_y,
+// Get dx dy (normal d vector) for a given xy - interpolates between known map points
+vector<double> get_dx_dy(
+    double x, double y, vector<double> &maps_x, vector<double> &maps_y,
     vector<double> &maps_dx, vector<double> &maps_dy)
 {
-    auto xy = getXY(s_state[0], d_state[0], maps_s, maps_x, maps_y) ;
-    int closest_index = ClosestWaypoint(xy[0], xy[1], maps_x, maps_y) ;
+    int closest_index = ClosestWaypoint(x, y, maps_x, maps_y) ;
 
-    double closest_point_distance =  distance(xy[0], xy[1], maps_x[closest_index], maps_y[closest_index]) ;
-    double previous_point_distance =  distance(xy[0], xy[1], maps_x[closest_index - 1], maps_y[closest_index - 1]) ;
-    double next_point_distance =  distance(xy[0], xy[1], maps_x[closest_index + 1], maps_y[closest_index + 1]) ;
+    double closest_point_distance =  distance(x, y, maps_x[closest_index], maps_y[closest_index]) ;
+    double previous_point_distance =  distance(x, y, maps_x[closest_index - 1], maps_y[closest_index - 1]) ;
+    double next_point_distance =  distance(x, y, maps_x[closest_index + 1], maps_y[closest_index + 1]) ;
 
     int second_closest_index =
         (previous_point_distance < next_point_distance) ? closest_index - 1 : closest_index + 1 ;
@@ -439,6 +481,21 @@ vector<vector<double>> get_xy_states_from_sd_states(
     double dx = ((closest_dx * second_closest_point_distance) + (second_closest_dx * closest_point_distance)) / distances_sum ;
     double dy = ((closest_dy * second_closest_point_distance) + (second_closest_dy * closest_point_distance)) / distances_sum ;
 
+    return vector<double> {dx, dy} ;
+}
+
+
+vector<vector<double>> get_xy_states_from_sd_states(
+    vector<double> &s_state, vector<double> &d_state,
+    vector<double> &maps_s, vector<double> &maps_x, vector<double> &maps_y,
+    vector<double> &maps_dx, vector<double> &maps_dy)
+{
+    auto xy = getXY(s_state[0], d_state[0], maps_s, maps_x, maps_y) ;
+
+    auto dx_dy = get_dx_dy(xy[0], xy[1], maps_x, maps_y, maps_dx, maps_dy) ;
+    double dx = dx_dy[0] ;
+    double dy = dx_dy[1] ;
+
     double d_angle = std::atan2(dy, dx) ;
     double s_angle = d_angle + (pi() / 2.0) ;
 
@@ -453,6 +510,39 @@ vector<vector<double>> get_xy_states_from_sd_states(
 
     vector<vector<double>> xy_states {x_state, y_state} ;
     return xy_states ;
+}
+
+
+vector<double> get_sd_velocity_from_xy_velocity(
+    double x, double y, double vx, double vy,
+    vector<double> &maps_x, vector<double> &maps_y, vector<double> &maps_dx, vector<double> &maps_dy)
+{
+//    auto dx_dy = get_dx_dy(x, y, maps_x, maps_y, maps_dx, maps_dy) ;
+//    double dx = dx_dy[0] ;
+//    double dy = dx_dy[1] ;
+//
+//    double d_angle = std::atan2(dy, dx) ;
+//    double s_angle = d_angle + (pi() / 2.0) ;
+//
+//    double s_velocity = vx * std::cos(s_angle) + (vy * std::sin(s_angle)) ;
+//    double d_velocity = vx * std::cos(d_angle) + (vy * std::sin(d_angle)) ;
+
+//    double a = std::cos(s_angle) ;
+//    double b = std::cos(d_angle) ;
+//    double c = std::sin(s_angle) ;
+//    double d = std::sin(s_angle) ;
+//
+//    double scaling = a - (d * a / b) ;
+//    double s_velocity = (vy - (d * vx / b)) / scaling ;
+//    double d_velocity = (vx - (a * s_velocity)) / b ;
+
+//    double s_velocity =
+
+    double s_velocity = std::sqrt((vx*vx) + (vy*vy)) ;
+    double d_velocity = 0 ;
+
+    vector<double> sd_velocity {s_velocity, d_velocity} ;
+    return sd_velocity ;
 }
 
 

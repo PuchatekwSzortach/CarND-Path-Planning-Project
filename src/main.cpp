@@ -152,8 +152,6 @@ int main()
 
                     if(should_recompute_trajectory)
                     {
-                        std::cout << "previous_path_x size: " << previous_path_x.size() << std::endl;
-                        std::cout << "Elapsed time: " << elapsed_seconds << ", updating" << std::endl ;
                         last_trajectory_update_time = time_now ;
 
                         if(trajectories_generator.previous_x_trajectory.size() < 3)
@@ -172,9 +170,10 @@ int main()
                             sensory_data.push_back(vehicle_data) ;
                         }
 
-                        CostComputer cost_computer(configuration, sensory_data) ;
-                        int index = cost_computer.get_lowest_cost_trajectory_index(trajectories) ;
+                        CostComputer cost_computer(configuration, sensory_data,
+                            map_waypoints_x, map_waypoints_y, map_waypoints_s, map_waypoints_dx, map_waypoints_dy) ;
 
+                        int index = cost_computer.get_lowest_cost_trajectory_index(trajectories) ;
                         auto trajectory = trajectories[index] ;
 
                         next_x_vals = trajectory.x_trajectory ;
@@ -193,8 +192,11 @@ int main()
                         }
                     }
 
-//                    SensorDataHandler sensor(sensor_fusion, car_s, car_d) ;
-//                    sensor.is_vehicle_in_front_of_us() ;
+//                    SensorDataHandler sensor(
+//                        sensor_fusion, car_s, car_d,
+//                        map_waypoints_x, map_waypoints_y, map_waypoints_s, map_waypoints_dx, map_waypoints_dy) ;
+//
+//                    sensor.sense_vehicles_sd_speeds() ;
 
                     // TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
                     msgJson["next_x"] = next_x_vals;

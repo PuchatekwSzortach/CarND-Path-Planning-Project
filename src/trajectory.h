@@ -49,6 +49,10 @@ class Trajectory
     void print()
     {
         std::cout << "Trajectory:\n" ;
+
+        std::cout << "Initial s: " << this->initial_s_state[0] << ", " << this->initial_s_state[1]
+            << ", " << this->initial_s_state[2] << std::endl ;
+
         std::cout << "Final s: " << this->final_s_state[0] << ", " << this->final_s_state[1]
             << ", " << this->final_s_state[2] << std::endl ;
 
@@ -143,7 +147,7 @@ class TrajectoriesGenerator
 
         double ideal_position = 6 ;
 
-        vector<double> ideal_positions {2.0, 3.0, 5.0, 6.0, 7.0, 9.0, 10.0} ;
+        vector<double> ideal_positions {2.0, 6.0, 10.0} ;
 
         vector<vector<double>> final_d_states ;
 
@@ -157,17 +161,17 @@ class TrajectoriesGenerator
     }
 
     Trajectory generate_trajectory(
-        vector<double> &initial_s_state, vector<double> &final_s_state,
-        vector<double> &initial_d_state, vector<double> &final_d_state,
         vector<double> initial_x_trajectory, vector<double> initial_y_trajectory,
         vector<double> initial_s_trajectory, vector<double> initial_d_trajectory,
+        vector<double> next_segment_initial_s_state, vector<double> final_s_state,
+        vector<double> next_segment_initial_d_state, vector<double> final_d_state,
         double time_horizon, double time_per_step)
     {
         auto s_coefficients = get_jerk_minimizing_trajectory_coefficients(
-            initial_s_state, final_s_state, time_horizon) ;
+            next_segment_initial_s_state, final_s_state, time_horizon) ;
 
         auto d_coefficients = get_jerk_minimizing_trajectory_coefficients(
-            initial_d_state, final_d_state, time_horizon) ;
+            next_segment_initial_d_state, final_d_state, time_horizon) ;
 
         vector<double> added_time_steps ;
 
@@ -223,6 +227,9 @@ class TrajectoriesGenerator
             initial_d_trajectory.push_back(smooth_d_trajectory[index]) ;
         }
 
+        auto initial_s_state = get_s_state_at_trajectory_start(initial_s_trajectory, time_per_step) ;
+        auto initial_d_state = get_d_state_at_trajectory_start(initial_d_trajectory, time_per_step) ;
+
         Trajectory trajectory(
             initial_x_trajectory, initial_y_trajectory, initial_s_trajectory, initial_d_trajectory,
             initial_s_state, final_s_state, initial_d_state, final_d_state) ;
@@ -261,11 +268,14 @@ class TrajectoriesGenerator
         double time_horizon = configuration.trajectory_time - configuration.trajectory_update_interval ;
         double time_per_step = this->configuration.time_per_step ;
 
-        vector<double> initial_s_state = get_initial_s_state(initial_s_trajectory, time_per_step) ;
-        vector<double> initial_d_state = get_initial_d_state(initial_d_trajectory, time_per_step) ;
+        vector<double> next_segment_initial_s_state = get_s_state_at_trajectory_end(
+            initial_s_trajectory, time_per_step) ;
 
-        auto final_s_states = this->generate_final_s_states(initial_s_state, time_horizon, time_per_step) ;
-        auto final_d_states = this->generate_final_d_states(initial_d_state, time_horizon, time_per_step) ;
+        vector<double> next_segment_initial_d_state = get_d_state_at_trajectory_end(
+            initial_d_trajectory, time_per_step) ;
+
+        auto final_s_states = this->generate_final_s_states(next_segment_initial_s_state, time_horizon, time_per_step) ;
+        auto final_d_states = this->generate_final_d_states(next_segment_initial_d_state, time_horizon, time_per_step) ;
 
         vector<Trajectory> trajectories ;
 
@@ -274,8 +284,8 @@ class TrajectoriesGenerator
             for(auto final_d_state: final_d_states)
             {
                 auto trajectory = this->generate_trajectory(
-                    initial_s_state, final_s_state, initial_d_state, final_d_state,
                     initial_x_trajectory, initial_y_trajectory, initial_s_trajectory, initial_d_trajectory,
+                    next_segment_initial_s_state, final_s_state, next_segment_initial_d_state, final_d_state,
                     time_horizon, time_per_step) ;
 
                 trajectories.push_back(trajectory) ;

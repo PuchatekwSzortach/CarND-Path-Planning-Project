@@ -15,7 +15,7 @@ class Configuration
     {
         this->target_speed = 20.0 ;
 
-        this->trajectory_update_interval = 0.5 ;
+        this->trajectory_update_interval = 1.0 ;
         this->trajectory_time = 4.0 ;
         this->time_per_step = 0.02 ;
     }
