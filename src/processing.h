@@ -18,6 +18,15 @@
 using namespace std ;
 
 
+void print_vector(vector<double> &data)
+{
+    for(auto element: data)
+    {
+        std::cout << element << std::endl ;
+    }
+}
+
+
 // For converting back and forth between radians and degrees.
 constexpr double pi() { return M_PI; }
 
@@ -586,6 +595,26 @@ int get_index_of_closest_previous_x_trajectory_point(
 }
 
 
+int get_index_of_closest_s_trajectory_point(double car_s, vector<double> &s_trajectory)
+{
+    int best_index = 0 ;
+    double best_distance = std::abs(car_s - s_trajectory[best_index]) ;
+
+    for(int index = 1 ; index < s_trajectory.size() ; ++index)
+    {
+        double current_distance = std::abs(car_s - s_trajectory[index]) ;
+
+        if(current_distance < best_distance)
+        {
+            best_distance = current_distance ;
+            best_index = index ;
+        }
+    }
+
+    return best_index ;
+}
+
+
 // Moves n elements from end of first vector to beginning of second vector
 void move_n_elements(vector<double> &first, vector<double> &second, int n)
 {
@@ -701,15 +730,6 @@ double get_arc_angle(
 }
 
 
-void print_vector(vector<double> &data)
-{
-    for(auto element: data)
-    {
-        std::cout << element << std::endl ;
-    }
-}
-
-
 bool is_car_going_through_sharp_turn(
     double car_x, double car_y, const vector<double> &maps_x, const vector<double> &maps_y)
 {
@@ -729,7 +749,7 @@ bool is_car_going_through_sharp_turn(
     double second_angle = std::atan2(second_y_change, second_x_change) ;
 
     double angle_difference = rad2deg(std::abs(first_angle - second_angle)) ;
-    return angle_difference > 12.0 ;
+    return angle_difference > 10.0 ;
 }
 
 

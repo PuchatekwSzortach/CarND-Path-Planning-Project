@@ -55,27 +55,28 @@ class CostComputer
         for(int index = 0 ; index < trajectories.size() ; ++index)
         {
             auto trajectory = trajectories[index] ;
-            trajectory.print() ;
+//            trajectory.print() ;
             double cost = 0 ;
 
             double target_speed_cost = 100.0 * this->get_target_speed_cost(trajectory) ;
             double collision_cost = this->huge_cost * this->get_collision_cost(trajectory) ;
-            double following_distance_cost = 1.5 *this->get_following_distance_cost(trajectory) ;
+            double following_distance_cost = 3.0 *this->get_following_distance_cost(trajectory) ;
             double final_lane_change_cost = 10.0 * this->get_previous_trajectory_final_lane_change_cost(trajectory) ;
             double sharp_turn_speeding_cost = 2.0 * this->get_sharp_turn_speeding_cost(trajectory) ;
 
+//            std::cout << "\ttarget_speed_cost: " << target_speed_cost << ", collision_cost: " << collision_cost
+//                << ", following_distance_cost: " << following_distance_cost << ", \n\tfinal_lane_change_cost: "
+//                << final_lane_change_cost << ", sharp_turn_speeding_cost: " << sharp_turn_speeding_cost << std::endl ;
 
-            std::cout << "\ttarget_speed_cost: " << target_speed_cost << ", collision_cost: " << collision_cost
-                << ", following_distance_cost: " << following_distance_cost << ", \n\tfinal_lane_change_cost: "
-                << final_lane_change_cost << ", sharp_turn_speeding_cost: " << sharp_turn_speeding_cost << std::endl ;
-
-            cost = target_speed_cost + collision_cost + following_distance_cost + final_lane_change_cost + sharp_turn_speeding_cost ;
+            cost = target_speed_cost + collision_cost + following_distance_cost + final_lane_change_cost +
+                    sharp_turn_speeding_cost ;
 
 //            std::cout << "\tCost: " << cost << std::endl ;
 
             costs.push_back(cost) ;
 
         }
+
         return get_arg_min(costs) ;
     }
 
@@ -110,7 +111,7 @@ class CostComputer
                 this->maps_x, this->maps_y, this->maps_dx, this->maps_dy) ;
 
             double mean_velocity = 0.5 * (trajectory.initial_s_state[1] + trajectory.final_s_state[1]) ;
-            double safety_s_distance = 8.0 ;
+            double safety_s_distance = 10.0 ;
             double safety_d_distance = 3.5 ;
 
             bool will_collide = will_ego_collide_with_vehicle(
