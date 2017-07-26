@@ -154,7 +154,7 @@ class CostComputer
 
 //            double mean_velocity = 0.7 * (trajectory.initial_s_state[1] + trajectory.final_s_state[1]) ;
 //            double safety_s_distance = 0.5 * std::pow(mean_velocity, 1.2) ;
-            double safety_s_distance = this->configuration.target_speed ;
+            double safety_s_distance = 1.5 * this->configuration.target_speed ;
 
             cost += this->get_ego_safety_distance_to_vehicle_cost(
                 trajectory, vehicle_s, vehicle_d, vehicle_sd_speed[0], vehicle_sd_speed[1], safety_s_distance) ;
