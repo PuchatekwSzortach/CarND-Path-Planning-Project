@@ -55,7 +55,7 @@ class CostComputer
 
             cost += 100.0 * this->get_target_speed_cost(trajectory) ;
 
-            cost += this->get_speeding_cost(trajectory) ;
+            cost += this->huge_cost * this->get_speeding_cost(trajectory) ;
 //            cost += this->get_tangential_acceleration_cost(trajectory) ;
 //            cost += this->get_normal_acceleration_cost(trajectory) ;
 //            cost += this->get_sharp_turns_cost(trajectory) ;
@@ -85,10 +85,6 @@ class CostComputer
         auto ego_initial_d = trajectory.initial_d_state ;
         auto ego_final_d = trajectory.final_d_state ;
 
-        // Establish d-band we will be inside during this trajectory
-        double ego_d_left = std::min(trajectory.initial_d_state[0], trajectory.final_d_state[0]) - 1.0 ;
-        double ego_d_right = std::max(trajectory.initial_d_state[0], trajectory.final_d_state[0]) + 1.0 ;
-
         for(auto vehicle_data: sensory_data)
         {
             int vehicle_id = vehicle_data[0] ;
@@ -110,7 +106,7 @@ class CostComputer
             double vehicle_d_right = std::max(vehicle_d, vehicle_final_d) ;
 
             double safety_s_distance = 20.0 ;
-            double safety_d_distance = 2.0 ;
+            double safety_d_distance = 3.0 ;
 
             bool are_we_keeping_lane = ((std::abs(ego_initial_d[0] - ego_final_d[0])) < safety_d_distance) ;
 
@@ -177,13 +173,44 @@ class CostComputer
 
         auto s_trajectory = trajectory.s_trajectory ;
 
-        for(int index = 1 ; index < s_trajectory.size() ; ++index)
+        // Check at resolution of one step
+        int step_size = 1 ;
+        for(int index = step_size ; index < s_trajectory.size() ; index += step_size)
         {
-            auto speed = (s_trajectory[index] - s_trajectory[index - 1]) / this->configuration.time_per_step ;
+            auto speed = (s_trajectory[index] - s_trajectory[index - step_size]) /
+                (double(step_size) * this->configuration.time_per_step) ;
 
-            if(speed > this->configuration.speed_limit)
+            if(speed > 0.99 * this->configuration.speed_limit)
             {
-                cost += this->huge_cost ;
+                cost += 1 ;
+            }
+
+        }
+
+        // Check at resolution of two steps
+        step_size = 2 ;
+        for(int index = step_size ; index < s_trajectory.size() ; index += step_size)
+        {
+            auto speed = (s_trajectory[index] - s_trajectory[index - step_size]) /
+                (double(step_size) * this->configuration.time_per_step) ;
+
+            if(speed > 0.99 * this->configuration.speed_limit)
+            {
+                cost += 1 ;
+            }
+
+        }
+
+        // Check at resolution of four steps
+        step_size = 4 ;
+        for(int index = step_size ; index < s_trajectory.size() ; index += step_size)
+        {
+            auto speed = (s_trajectory[index] - s_trajectory[index - step_size]) /
+                (double(step_size) * this->configuration.time_per_step) ;
+
+            if(speed > 0.99 * this->configuration.speed_limit)
+            {
+                cost += 1 ;
             }
 
         }

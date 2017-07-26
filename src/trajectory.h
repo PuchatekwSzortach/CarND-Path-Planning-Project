@@ -110,6 +110,8 @@ class TrajectoriesGenerator
         double acceleration = 1.0 ;
         double time_instant = 0 ;
 
+//        car_s = 6000 ;
+
         while(time_instant < this->configuration.trajectory_time)
         {
             double s = car_s + (0.5 * acceleration * time_instant * time_instant) ;
