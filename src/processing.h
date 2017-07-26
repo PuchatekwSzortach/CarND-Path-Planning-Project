@@ -722,7 +722,7 @@ bool will_ego_collide_with_vehicle(
             // If we will be in the same lane at some given time instant
             if(are_ego_and_vehicle_in_same_lane(ego_d, current_vehicle_d))
             {
-                if(std::abs(s_distance) < front_safety_s_distance)
+                if(std::abs(s_distance) < back_safety_s_distance)
                 {
                     return true ;
                 }

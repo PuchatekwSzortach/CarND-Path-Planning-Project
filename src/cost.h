@@ -177,8 +177,8 @@ class CostComputer
     {
         double cost = 0 ;
 
-        double ego_initial_s = ego_s_trajectory[0] ;
-        double ego_initial_d = ego_d_trajectory[0] ;
+        double ego_initial_s = trajectory.s_trajectory[0] ;
+        double ego_initial_d = trajectory.d_trajectory[0] ;
 
         for(int index = 0 ; index < trajectory.s_trajectory.size() ; index++)
         {
@@ -197,7 +197,7 @@ class CostComputer
             {
                 if(std::abs(s_distance) < front_safety_s_distance)
                 {
-                    cost += front_safety_s_distance / s_distance ;
+                    cost += front_safety_s_distance / std::abs(s_distance) ;
                 }
             }
             // Else vehicle is in different lane than we started - it might be coming fast from behind
@@ -206,9 +206,9 @@ class CostComputer
                 // If we will be in the same lane at some given time instant
                 if(are_ego_and_vehicle_in_same_lane(ego_d, current_vehicle_d))
                 {
-                    if(std::abs(s_distance) < front_safety_s_distance)
+                    if(std::abs(s_distance) < back_safety_s_distance)
                     {
-                        cost += front_safety_s_distance / s_distance ;
+                        cost += front_safety_s_distance / std::abs(s_distance) ;
                     }
                 }
             }
