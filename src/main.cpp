@@ -156,6 +156,7 @@ int main()
 
                         if(previous_path_x.size() == 0)
                         {
+                            car_s = 3000 ;
                             trajectories_generator.set_previous_trajectories_from_current_state(car_s, car_d) ;
                         }
 

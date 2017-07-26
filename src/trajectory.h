@@ -296,19 +296,44 @@ class TrajectoriesGenerator
         auto xy_trajectories = convert_frenet_trajectory_to_cartesian_trajectory(
             s_trajectory, trajectory.d_trajectory, this->maps_s, this->maps_x, this->maps_y) ;
 
+        int split_index = 10 ;
+        vector<double> first_segment_x ;
+        vector<double> first_segment_y ;
+
+        for(int index = 0 ; index < split_index ; ++index)
+        {
+            first_segment_x.push_back(trajectory.x_trajectory[index]) ;
+            first_segment_y.push_back(trajectory.y_trajectory[index]) ;
+        }
+
+        vector<double> second_segment_x ;
+        vector<double> second_segment_y ;
+
+        for(int index = split_index ; index < trajectory.x_trajectory.size() ; ++index)
+        {
+            second_segment_x.push_back(trajectory.x_trajectory[index]) ;
+            second_segment_y.push_back(trajectory.y_trajectory[index]) ;
+        }
+
         vector<double> trajectory_time ;
         double time_instant = 0 ;
-        for(int index = 0 ; index < s_trajectory.size() ; ++index)
+        for(int index = 0 ; index < second_segment_x.size() ; ++index)
         {
             time_instant += this->configuration.time_per_step ;
             trajectory_time.push_back(time_instant) ;
         }
 
-        auto smooth_x_trajectory = get_smoothed_trajectory(trajectory_time, xy_trajectories[0]) ;
-        auto smooth_y_trajectory = get_smoothed_trajectory(trajectory_time, xy_trajectories[1]) ;
+        auto smooth_second_segment_x = get_smoothed_trajectory(trajectory_time, second_segment_x) ;
+        auto smooth_second_segment_y = get_smoothed_trajectory(trajectory_time, second_segment_y) ;
+
+        for(int index = 0 ; index < smooth_second_segment_x.size() ; ++index)
+        {
+            first_segment_x.push_back(smooth_second_segment_x[index]) ;
+            first_segment_y.push_back(smooth_second_segment_y[index]) ;
+        }
 
         Trajectory adjusted_trajectory(
-            smooth_x_trajectory, smooth_y_trajectory, s_trajectory, trajectory.d_trajectory,
+            first_segment_x, first_segment_y, s_trajectory, trajectory.d_trajectory,
             trajectory.initial_s_state, trajectory.final_s_state,
             trajectory.initial_d_state, trajectory.final_d_state) ;
 
