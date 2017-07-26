@@ -62,7 +62,7 @@ class CostComputer
             double collision_cost = this->huge_cost * this->get_collision_cost(trajectory) ;
             double following_distance_cost = 2.0 *this->get_following_distance_cost(trajectory) ;
             double final_lane_change_cost = 0.1 * this->get_previous_trajectory_final_lane_change_cost(trajectory) ;
-            double sharp_turn_speeding_cost = 1.0 * this->get_sharp_turn_speeding_cost(trajectory) ;
+            double sharp_turn_speeding_cost = 100.0 * this->get_sharp_turn_speeding_cost(trajectory) ;
 
             std::cout << "\ttarget_speed_cost: " << target_speed_cost << ", collision_cost: " << collision_cost
                 << ", following_distance_cost: " << following_distance_cost << ", \n\tfinal_lane_change_cost: "
@@ -110,7 +110,6 @@ class CostComputer
                 vehicle_x, vehicle_y, vehicle_vx, vehicle_vy,
                 this->maps_x, this->maps_y, this->maps_dx, this->maps_dy) ;
 
-            double mean_velocity = 0.5 * (trajectory.initial_s_state[1] + trajectory.final_s_state[1]) ;
             double front_safety_s_distance = 10.0 ;
             double back_safety_s_distance = 8.0 ;
 
@@ -154,8 +153,8 @@ class CostComputer
                 vehicle_x, vehicle_y, vehicle_vx, vehicle_vy,
                 this->maps_x, this->maps_y, this->maps_dx, this->maps_dy) ;
 
-            double front_safety_s_distance = 1.5 * this->configuration.target_speed ;
-            double back_safety_s_distance = 0.5 * this->configuration.target_speed ;
+            double front_safety_s_distance = 1.2 * this->configuration.target_speed ;
+            double back_safety_s_distance = 0.3 * this->configuration.target_speed ;
 
             cost += this->get_ego_following_distance_to_vehicle_cost(
                 trajectory, vehicle_s, vehicle_d, vehicle_sd_speed[0], vehicle_sd_speed[1],
@@ -178,6 +177,9 @@ class CostComputer
     {
         double cost = 0 ;
 
+        double ego_initial_s = ego_s_trajectory[0] ;
+        double ego_initial_d = ego_d_trajectory[0] ;
+
         for(int index = 0 ; index < trajectory.s_trajectory.size() ; index++)
         {
             double ego_s = trajectory.s_trajectory[index] ;
@@ -190,17 +192,24 @@ class CostComputer
 
             double s_distance = current_vehicle_s - ego_s ;
 
-            if(are_ego_and_vehicle_in_same_lane(ego_d, current_vehicle_d))
+            // If vehicle is in the same lane we started trajectory and was in front of us from the beginning
+            if(are_ego_and_vehicle_in_same_lane(ego_initial_d, vehicle_d) && vehicle_s > ego_initial_s)
             {
-                // If car is in front of us or right behind us, use a very generous front_safety_s_distance
-                if(s_distance > 0 && s_distance < front_safety_s_distance)
+                if(std::abs(s_distance) < front_safety_s_distance)
                 {
                     cost += front_safety_s_distance / s_distance ;
                 }
-                // Else use a smaller back_safety_s_distance
-                else if(std::abs(s_distance) < back_safety_s_distance)
+            }
+            // Else vehicle is in different lane than we started - it might be coming fast from behind
+            else
+            {
+                // If we will be in the same lane at some given time instant
+                if(are_ego_and_vehicle_in_same_lane(ego_d, current_vehicle_d))
                 {
-                    cost += back_safety_s_distance / std::abs(s_distance) ;
+                    if(std::abs(s_distance) < front_safety_s_distance)
+                    {
+                        cost += front_safety_s_distance / s_distance ;
+                    }
                 }
             }
 
@@ -215,7 +224,8 @@ class CostComputer
         if(is_car_going_through_sharp_turn(
             trajectory.x_trajectory.front(), trajectory.y_trajectory.front(), this->maps_x, this->maps_y) )
         {
-            cost += std::pow(trajectory.final_s_state[1], 1.1) ;
+            double final_speed = trajectory.final_s_state[1] ;
+            cost += std::abs(configuration.target_speed - 10.0 - final_speed) / configuration.target_speed ;
         }
 
         return cost ;

@@ -56,6 +56,9 @@ class Trajectory
         std::cout << "Final s: " << this->final_s_state[0] << ", " << this->final_s_state[1]
             << ", " << this->final_s_state[2] << std::endl ;
 
+        std::cout << "Initial d: " << this->initial_d_state[0] << ", " << this->initial_d_state[1]
+            << ", " << this->initial_d_state[2] << std::endl ;
+
         std::cout << "Final d: " << this->final_d_state[0] << ", " << this->final_d_state[1]
             << ", " << this->final_d_state[2] << std::endl ;
     }

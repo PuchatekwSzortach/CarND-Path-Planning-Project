@@ -660,7 +660,7 @@ int get_arg_min(vector<double> &values)
 
 bool are_ego_and_vehicle_in_same_lane(double ego_d, double vehicle_d)
 {
-    double half_ego_width = 1.7 ;
+    double half_ego_width = 1.49 ;
 
     double ego_left = ego_d - half_ego_width ;
     double ego_right = ego_d + half_ego_width ;
@@ -693,6 +693,9 @@ bool will_ego_collide_with_vehicle(
     double vehicle_s, double vehicle_d, double vehicle_vs, double vehicle_vd, double time_per_step,
     double front_safety_s_distance, double back_safety_s_distance)
 {
+    double ego_initial_s = ego_s_trajectory[0] ;
+    double ego_initial_d = ego_d_trajectory[0] ;
+
     for(int index = 0 ; index < ego_s_trajectory.size() ; index++)
     {
         double ego_s = ego_s_trajectory[index] ;
@@ -705,19 +708,24 @@ bool will_ego_collide_with_vehicle(
 
         double s_distance = current_vehicle_s - ego_s ;
 
-        if(are_ego_and_vehicle_in_same_lane(ego_d, current_vehicle_d))
+        // If vehicle is in the same lane we started trajectory and was in front of us from the beginning
+        if(are_ego_and_vehicle_in_same_lane(ego_initial_d, vehicle_d) && vehicle_s > ego_initial_s)
         {
-            // If vehicle is in front of us
-            if(s_distance > 0 && s_distance < front_safety_s_distance)
+            if(std::abs(s_distance) < front_safety_s_distance)
             {
                 return true ;
             }
-            // Else vehicle is behind us - thus only consider it if are not in our initial lane
-            // as we shouldn't have to worry about cars coming behind us from our current lane - they should break
-            // for us
-            else if(!are_ego_and_vehicle_in_same_lane(ego_d_trajectory[0], ego_d) && std::abs(s_distance) < back_safety_s_distance)
+        }
+        // Else vehicle is in different lane than we started - it might be coming fast from behind
+        else
+        {
+            // If we will be in the same lane at some given time instant
+            if(are_ego_and_vehicle_in_same_lane(ego_d, current_vehicle_d))
             {
-                return true ;
+                if(std::abs(s_distance) < front_safety_s_distance)
+                {
+                    return true ;
+                }
             }
         }
 
