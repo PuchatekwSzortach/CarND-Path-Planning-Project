@@ -181,7 +181,7 @@ class CostComputer
         double ego_final_d = trajectory.d_trajectory.back() ;
 
         double ego_minimum_speed = std::min(trajectory.initial_s_state[1], trajectory.final_s_state[1]) ;
-        double ego_maximum_speed = std::max(ego_initial_s_speed, ego_final_s_speed) ;
+        double ego_maximum_speed = std::max(trajectory.initial_s_state[1], trajectory.final_s_state[1]) ;
 
         for(int index = 0 ; index < trajectory.s_trajectory.size() ; index++)
         {
