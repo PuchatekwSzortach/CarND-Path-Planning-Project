@@ -151,7 +151,15 @@ class TrajectoriesGenerator
 
         for(auto speed: speed_values)
         {
-            auto final_state = get_final_s_state(initial_s_state, speed, time_horizon, time_per_step) ;
+//
+//            vector<double> get_final_s_state(
+//            vector<double> &initial_s_state, car_x, car_y, const vector<double> &maps_x, const vector<double> &maps_y,
+//            double target_speed, double time_horizon, double time_between_steps)
+
+            auto final_state = get_final_s_state(
+                initial_s_state, this->previous_x_trajectory[0], this->previous_y_trajectory[0],
+                this->maps_x, this->maps_y, speed, time_horizon, time_per_step) ;
+
             final_s_states.push_back(final_state) ;
         }
 
@@ -299,7 +307,7 @@ class TrajectoriesGenerator
         auto xy_trajectories = convert_frenet_trajectory_to_cartesian_trajectory(
             s_trajectory, trajectory.d_trajectory, this->maps_s, this->maps_x, this->maps_y) ;
 
-        int split_index = 10 ;
+        int split_index = 20 ;
         vector<double> first_segment_x ;
         vector<double> first_segment_y ;
 

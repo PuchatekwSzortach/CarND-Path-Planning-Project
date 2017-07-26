@@ -62,14 +62,13 @@ class CostComputer
             double collision_cost = this->huge_cost * this->get_collision_cost(trajectory) ;
             double following_distance_cost = 2.0 *this->get_following_distance_cost(trajectory) ;
             double final_lane_change_cost = 0.1 * this->get_previous_trajectory_final_lane_change_cost(trajectory) ;
-            double sharp_turn_speeding_cost = 150.0 * this->get_sharp_turn_speeding_cost(trajectory) ;
+//            double sharp_turn_speeding_cost = 105.0 * this->get_sharp_turn_speeding_cost(trajectory) ;
 
             std::cout << "\ttarget_speed_cost: " << target_speed_cost << ", collision_cost: " << collision_cost
                 << ", following_distance_cost: " << following_distance_cost << ", \n\tfinal_lane_change_cost: "
-                << final_lane_change_cost << ", sharp_turn_speeding_cost: " << sharp_turn_speeding_cost << std::endl ;
+                << final_lane_change_cost ;
 
-            cost = target_speed_cost + collision_cost + following_distance_cost + final_lane_change_cost +
-                    sharp_turn_speeding_cost ;
+            cost = target_speed_cost + collision_cost + following_distance_cost + final_lane_change_cost ;
 
             std::cout << "\tCost: " << cost << std::endl ;
 
@@ -111,7 +110,7 @@ class CostComputer
                 this->maps_x, this->maps_y, this->maps_dx, this->maps_dy) ;
 
             double front_safety_s_distance = 10.0 ;
-            double back_safety_s_distance = 8.0 ;
+            double back_safety_s_distance = 5.0 ;
 
             bool will_collide = will_ego_collide_with_vehicle(
                 trajectory.s_trajectory, trajectory.d_trajectory, trajectory.initial_s_state[1], trajectory.final_s_state[1],
@@ -182,6 +181,7 @@ class CostComputer
         double ego_final_d = trajectory.d_trajectory.back() ;
 
         double ego_minimum_speed = std::min(trajectory.initial_s_state[1], trajectory.final_s_state[1]) ;
+        double ego_maximum_speed = std::max(ego_initial_s_speed, ego_final_s_speed) ;
 
         for(int index = 0 ; index < trajectory.s_trajectory.size() ; index++)
         {
@@ -220,10 +220,22 @@ class CostComputer
                     }
                     else // Else check with larger safety buffer
                     {
-                        // Check distance with smaller safety buffer
-                        if(std::abs(s_distance) < front_safety_s_distance)
+
+                        // If vehicle is ahead of us and moving faster than us
+                        if(vehicle_s > ego_initial_s && vehicle_vs > ego_maximum_speed)
                         {
-                            cost += front_safety_s_distance / std::abs(s_distance) ;
+                            // Check distance with smaller safety buffer
+                            if(std::abs(s_distance) < back_safety_s_distance)
+                            {
+                                cost += back_safety_s_distance / std::abs(s_distance) ;
+                            }
+                        }
+                        else // Vehicle might be ahead of us moving slow or behind us moving fast - exercise caution
+                        {
+                            if(std::abs(s_distance) < front_safety_s_distance)
+                            {
+                                cost += front_safety_s_distance / std::abs(s_distance) ;
+                            }
                         }
                     }
                 }
@@ -233,19 +245,19 @@ class CostComputer
         return cost ;
     }
 
-    double get_sharp_turn_speeding_cost(Trajectory &trajectory)
-    {
-        double cost = 0 ;
-
-        if(is_car_going_through_sharp_turn(
-            trajectory.x_trajectory.front(), trajectory.y_trajectory.front(), this->maps_x, this->maps_y) )
-        {
-            double final_speed = trajectory.final_s_state[1] ;
-            cost += std::abs(configuration.target_speed - 10.0 - final_speed) / configuration.target_speed ;
-        }
-
-        return cost ;
-    }
+//    double get_sharp_turn_speeding_cost(Trajectory &trajectory)
+//    {
+//        double cost = 0 ;
+//
+//        if(is_car_going_through_sharp_turn(
+//            trajectory.x_trajectory.front(), trajectory.y_trajectory.front(), this->maps_x, this->maps_y) )
+//        {
+//            double final_speed = trajectory.final_s_state[1] ;
+//            cost += std::abs(configuration.target_speed - 10.0 - final_speed) / configuration.target_speed ;
+//        }
+//
+//        return cost ;
+//    }
 
 } ;
 

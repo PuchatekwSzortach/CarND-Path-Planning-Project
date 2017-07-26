@@ -180,6 +180,29 @@ vector<vector<double>> convert_frenet_trajectory_to_cartesian_trajectory(
 };
 
 
+bool is_car_going_through_sharp_turn(
+    double car_x, double car_y, const vector<double> &maps_x, const vector<double> &maps_y)
+{
+    int closest_index = ClosestWaypoint(car_x, car_y, maps_x, maps_y) - 2 ;
+
+    double start_x = maps_x[closest_index] ;
+    double start_y = maps_y[closest_index] ;
+
+    double first_x_change = maps_x[closest_index + 2] - start_x ;
+    double first_y_change = maps_y[closest_index + 2] - start_y ;
+
+    int offset = 5 ;
+    double second_x_change = maps_x[closest_index + offset] - start_x ;
+    double second_y_change = maps_y[closest_index + offset] - start_y ;
+
+    double first_angle = std::atan2(first_y_change, first_x_change) ;
+    double second_angle = std::atan2(second_y_change, second_x_change) ;
+
+    double angle_difference = rad2deg(std::abs(first_angle - second_angle)) ;
+    return angle_difference > 10.0 ;
+}
+
+
 vector<double> get_jerk_minimizing_trajectory_coefficients(
     vector<double> &initial_state, vector<double> &final_state, double time)
 {
@@ -385,11 +408,16 @@ vector<double> get_d_state_at_trajectory_end(vector<double> &previous_d_trajecto
 
 
 vector<double> get_final_s_state(
-    vector<double> &initial_s_state, double target_speed, double time_horizon, double time_between_steps)
+    vector<double> &initial_s_state, double car_x, double car_y,
+    const vector<double> &maps_x, const vector<double> &maps_y,
+    double target_speed, double time_horizon, double time_between_steps)
 {
     double initial_s = initial_s_state[0] ;
     double initial_speed = initial_s_state[1] ;
     double initial_acceleration = initial_s_state[2] ;
+
+    // If we are going through a sharp turn, decrease target speed a bit
+    target_speed = is_car_going_through_sharp_turn(car_x, car_y, maps_x, maps_y) ? target_speed - 5.0 : target_speed ;
 
     double acceleration = (target_speed - initial_speed) / time_horizon ;
 
@@ -698,6 +726,7 @@ bool will_ego_collide_with_vehicle(
     double ego_final_d = ego_d_trajectory.back() ;
 
     double ego_minimum_speed = std::min(ego_initial_s_speed, ego_final_s_speed) ;
+    double ego_maximum_speed = std::max(ego_initial_s_speed, ego_final_s_speed) ;
 
     for(int index = 0 ; index < ego_s_trajectory.size() ; index++)
     {
@@ -733,13 +762,25 @@ bool will_ego_collide_with_vehicle(
                         return true ;
                     }
                 }
-                else // Else check with larger safety buffer
+                else
                 {
-                    // Check distance with smaller safety buffer
-                    if(std::abs(s_distance) < front_safety_s_distance)
+                    // If vehicle is ahead of us and moving faster than us
+                    if(vehicle_s > ego_initial_s && vehicle_vs > ego_maximum_speed)
                     {
-                        return true ;
+                        // Check distance with smaller safety buffer
+                        if(std::abs(s_distance) < back_safety_s_distance)
+                        {
+                            return true ;
+                        }
                     }
+                    else // Vehicle might be ahead of us moving slow or behind us moving fast - exercise caution
+                    {
+                        if(std::abs(s_distance) < front_safety_s_distance)
+                        {
+                            return true ;
+                        }
+                    }
+
                 }
             }
         }
@@ -763,27 +804,6 @@ double get_arc_angle(
 }
 
 
-bool is_car_going_through_sharp_turn(
-    double car_x, double car_y, const vector<double> &maps_x, const vector<double> &maps_y)
-{
-    int closest_index = ClosestWaypoint(car_x, car_y, maps_x, maps_y) - 2 ;
-
-    double start_x = maps_x[closest_index] ;
-    double start_y = maps_y[closest_index] ;
-
-    double first_x_change = maps_x[closest_index + 2] - start_x ;
-    double first_y_change = maps_y[closest_index + 2] - start_y ;
-
-    int offset = 5 ;
-    double second_x_change = maps_x[closest_index + offset] - start_x ;
-    double second_y_change = maps_y[closest_index + offset] - start_y ;
-
-    double first_angle = std::atan2(first_y_change, first_x_change) ;
-    double second_angle = std::atan2(second_y_change, second_x_change) ;
-
-    double angle_difference = rad2deg(std::abs(first_angle - second_angle)) ;
-    return angle_difference > 10.0 ;
-}
 
 
 
