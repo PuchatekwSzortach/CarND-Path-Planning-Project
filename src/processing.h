@@ -689,12 +689,15 @@ bool are_ego_and_vehicle_in_same_lane(double ego_d, double vehicle_d)
 
 
 bool will_ego_collide_with_vehicle(
-    vector<double> &ego_s_trajectory, vector<double> &ego_d_trajectory,
+    vector<double> &ego_s_trajectory, vector<double> &ego_d_trajectory, double ego_initial_s_speed, double ego_final_s_speed,
     double vehicle_s, double vehicle_d, double vehicle_vs, double vehicle_vd, double time_per_step,
     double front_safety_s_distance, double back_safety_s_distance)
 {
     double ego_initial_s = ego_s_trajectory[0] ;
     double ego_initial_d = ego_d_trajectory[0] ;
+    double ego_final_d = ego_d_trajectory.back() ;
+
+    double ego_minimum_speed = std::min(ego_initial_s_speed, ego_final_s_speed) ;
 
     for(int index = 0 ; index < ego_s_trajectory.size() ; index++)
     {
@@ -708,23 +711,35 @@ bool will_ego_collide_with_vehicle(
 
         double s_distance = current_vehicle_s - ego_s ;
 
-        // If vehicle is in the same lane we started trajectory and was in front of us from the beginning
-        if(are_ego_and_vehicle_in_same_lane(ego_initial_d, vehicle_d) && vehicle_s > ego_initial_s)
+        if((are_ego_and_vehicle_in_same_lane(ego_d, vehicle_d)))
         {
-            if(std::abs(s_distance) < front_safety_s_distance)
+            // If we are keeping lane
+            if(are_ego_and_vehicle_in_same_lane(ego_initial_d, ego_final_d))
             {
-                return true ;
-            }
-        }
-        // Else vehicle is in different lane than we started - it might be coming fast from behind
-        else
-        {
-            // If we will be in the same lane at some given time instant
-            if(are_ego_and_vehicle_in_same_lane(ego_d, current_vehicle_d))
-            {
-                if(std::abs(s_distance) < back_safety_s_distance)
+                // Only look at vehicles in front of us
+                if(vehicle_s > ego_initial_s && std::abs(s_distance) < front_safety_s_distance)
                 {
                     return true ;
+                }
+            }
+            else // We are changing lanes
+            {
+                // If vehicle is behind us and slower than us, check distance with smaller safety buffer
+                if(vehicle_s < ego_initial_s && vehicle_vs < ego_minimum_speed)
+                {
+                    // Check distance with smaller safety buffer
+                    if(std::abs(s_distance) < back_safety_s_distance)
+                    {
+                        return true ;
+                    }
+                }
+                else // Else check with larger safety buffer
+                {
+                    // Check distance with smaller safety buffer
+                    if(std::abs(s_distance) < front_safety_s_distance)
+                    {
+                        return true ;
+                    }
                 }
             }
         }

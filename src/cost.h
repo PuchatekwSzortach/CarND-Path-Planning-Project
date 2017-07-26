@@ -62,7 +62,7 @@ class CostComputer
             double collision_cost = this->huge_cost * this->get_collision_cost(trajectory) ;
             double following_distance_cost = 2.0 *this->get_following_distance_cost(trajectory) ;
             double final_lane_change_cost = 0.1 * this->get_previous_trajectory_final_lane_change_cost(trajectory) ;
-            double sharp_turn_speeding_cost = 100.0 * this->get_sharp_turn_speeding_cost(trajectory) ;
+            double sharp_turn_speeding_cost = 150.0 * this->get_sharp_turn_speeding_cost(trajectory) ;
 
             std::cout << "\ttarget_speed_cost: " << target_speed_cost << ", collision_cost: " << collision_cost
                 << ", following_distance_cost: " << following_distance_cost << ", \n\tfinal_lane_change_cost: "
@@ -114,7 +114,7 @@ class CostComputer
             double back_safety_s_distance = 8.0 ;
 
             bool will_collide = will_ego_collide_with_vehicle(
-                trajectory.s_trajectory, trajectory.d_trajectory,
+                trajectory.s_trajectory, trajectory.d_trajectory, trajectory.initial_s_state[1], trajectory.final_s_state[1],
                 vehicle_s, vehicle_d, vehicle_sd_speed[0], vehicle_sd_speed[1],
                 this->configuration.time_per_step, front_safety_s_distance, back_safety_s_distance) ;
 
@@ -179,6 +179,9 @@ class CostComputer
 
         double ego_initial_s = trajectory.s_trajectory[0] ;
         double ego_initial_d = trajectory.d_trajectory[0] ;
+        double ego_final_d = trajectory.d_trajectory.back() ;
+
+        double ego_minimum_speed = std::min(trajectory.initial_s_state[1], trajectory.final_s_state[1]) ;
 
         for(int index = 0 ; index < trajectory.s_trajectory.size() ; index++)
         {
@@ -192,23 +195,36 @@ class CostComputer
 
             double s_distance = current_vehicle_s - ego_s ;
 
-            // If vehicle is in the same lane we started trajectory and was in front of us from the beginning
-            if(are_ego_and_vehicle_in_same_lane(ego_initial_d, vehicle_d) && vehicle_s > ego_initial_s)
+            // If ego and vehicle are in the same lane at given time instant
+            if((are_ego_and_vehicle_in_same_lane(ego_d, vehicle_d)))
             {
-                if(std::abs(s_distance) < front_safety_s_distance)
+                // If we are keeping lane
+                if(are_ego_and_vehicle_in_same_lane(ego_initial_d, ego_final_d))
                 {
-                    cost += front_safety_s_distance / std::abs(s_distance) ;
-                }
-            }
-            // Else vehicle is in different lane than we started - it might be coming fast from behind
-            else
-            {
-                // If we will be in the same lane at some given time instant
-                if(are_ego_and_vehicle_in_same_lane(ego_d, current_vehicle_d))
-                {
-                    if(std::abs(s_distance) < back_safety_s_distance)
+                    // Only look at vehicles in front of us
+                    if(vehicle_s > ego_initial_s && std::abs(s_distance) < front_safety_s_distance)
                     {
                         cost += front_safety_s_distance / std::abs(s_distance) ;
+                    }
+                }
+                else // We are changing lanes
+                {
+                    // If vehicle is behind us and slower than us, check distance with smaller safety buffer
+                    if(vehicle_s < ego_initial_s && vehicle_vs < ego_minimum_speed)
+                    {
+                        // Check distance with smaller safety buffer
+                        if(std::abs(s_distance) < back_safety_s_distance)
+                        {
+                            cost += back_safety_s_distance / std::abs(s_distance) ;
+                        }
+                    }
+                    else // Else check with larger safety buffer
+                    {
+                        // Check distance with smaller safety buffer
+                        if(std::abs(s_distance) < front_safety_s_distance)
+                        {
+                            cost += front_safety_s_distance / std::abs(s_distance) ;
+                        }
                     }
                 }
             }

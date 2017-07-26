@@ -96,124 +96,6 @@ void test_get_arg_min()
 }
 
 
-void test_will_ego_collide_with_vehicle_different_lanes()
-{
-    vector<double> s_trajectory {0, 1, 2, 3} ;
-    vector<double> d_trajectory {0, 0, 0, 0} ;
-
-    double vehicle_s = 1.0 ;
-    double vehicle_d = 6.0 ;
-    double vehicle_vs = 0.5 ;
-    double vehicle_vd = 0.0 ;
-
-    double time_per_step = 1.0 ;
-    double front_safety_s_distance = 0.5 ;
-    double back_safety_s_distance = 0.5 ;
-
-    bool expected = false ;
-    bool actual = will_ego_collide_with_vehicle(
-        s_trajectory, d_trajectory, vehicle_s, vehicle_d, vehicle_vs, vehicle_vd,
-        time_per_step, front_safety_s_distance, back_safety_s_distance) ;
-
-    assert(expected == actual) ;
-
-}
-
-void test_will_ego_collide_with_vehicle_same_lane_collision_speed()
-{
-    vector<double> s_trajectory {0, 1, 2, 3} ;
-    vector<double> d_trajectory {0, 0, 0, 0} ;
-
-    double vehicle_s = 1.0 ;
-    double vehicle_d = 0 ;
-    double vehicle_vs = 0.5 ;
-    double vehicle_vd = 0.0 ;
-
-    double time_per_step = 1.0 ;
-    double front_safety_s_distance = 0.5 ;
-    double back_safety_s_distance = 0.5 ;
-
-    bool expected = true ;
-    bool actual = will_ego_collide_with_vehicle(
-        s_trajectory, d_trajectory, vehicle_s, vehicle_d, vehicle_vs, vehicle_vd,
-        time_per_step, front_safety_s_distance, back_safety_s_distance) ;
-
-    assert(expected == actual) ;
-
-}
-
-
-void test_will_ego_collide_with_vehicle_same_lane_safe_speed()
-{
-    vector<double> s_trajectory {0, 1, 2, 3} ;
-    vector<double> d_trajectory {0, 0, 0, 0} ;
-
-    double vehicle_s = 1.0 ;
-    double vehicle_d = 0 ;
-    double vehicle_vs = 2.0 ;
-    double vehicle_vd = 0.0 ;
-
-    double time_per_step = 1.0 ;
-    double front_safety_s_distance = 0.5 ;
-    double back_safety_s_distance = 0.5 ;
-
-    bool expected = false ;
-    bool actual = will_ego_collide_with_vehicle(
-        s_trajectory, d_trajectory, vehicle_s, vehicle_d, vehicle_vs, vehicle_vd,
-        time_per_step, front_safety_s_distance, back_safety_s_distance) ;
-
-    assert(expected == actual) ;
-
-}
-
-
-void test_will_ego_collide_with_vehicle_crossing_lanes_safe_speed()
-{
-    vector<double> s_trajectory {0, 1, 2, 3} ;
-    vector<double> d_trajectory {0, 0, 2, 2} ;
-
-    double vehicle_s = 1.0 ;
-    double vehicle_d = 2.0 ;
-    double vehicle_vs = 2.0 ;
-    double vehicle_vd = 0.0 ;
-
-    double time_per_step = 1.0 ;
-    double front_safety_s_distance = 0.5 ;
-    double back_safety_s_distance = 0.5 ;
-
-    bool expected = false ;
-    bool actual = will_ego_collide_with_vehicle(
-        s_trajectory, d_trajectory, vehicle_s, vehicle_d, vehicle_vs, vehicle_vd,
-        time_per_step, front_safety_s_distance, back_safety_s_distance) ;
-
-    assert(expected == actual) ;
-
-}
-
-
-void test_will_ego_collide_with_vehicle_crossing_lanes_collision_speed()
-{
-    vector<double> s_trajectory {0, 1, 2, 3} ;
-    vector<double> d_trajectory {0, 0, 2, 2} ;
-
-    double vehicle_s = 1.0 ;
-    double vehicle_d = 2.0 ;
-    double vehicle_vs = 0.5 ;
-    double vehicle_vd = 0.0 ;
-
-    double time_per_step = 1.0 ;
-    double front_safety_s_distance = 0.5 ;
-    double back_safety_s_distance = 0.5 ;
-
-    bool expected = true ;
-    bool actual = will_ego_collide_with_vehicle(
-        s_trajectory, d_trajectory, vehicle_s, vehicle_d, vehicle_vs, vehicle_vd,
-        time_per_step, front_safety_s_distance, back_safety_s_distance) ;
-
-    assert(expected == actual) ;
-}
-
-
 void test_get_arc_angle_all_in_one_line()
 {
     double first_x = 0 ;
@@ -331,12 +213,6 @@ int main()
     test_evaluate_polynomial_square() ;
 
     test_get_arg_min() ;
-
-    test_will_ego_collide_with_vehicle_different_lanes() ;
-    test_will_ego_collide_with_vehicle_same_lane_collision_speed() ;
-    test_will_ego_collide_with_vehicle_same_lane_safe_speed() ;
-    test_will_ego_collide_with_vehicle_crossing_lanes_safe_speed() ;
-    test_will_ego_collide_with_vehicle_crossing_lanes_collision_speed() ;
 
     test_get_arc_angle_all_in_one_line() ;
     test_get_arc_angle_90_deg_angle() ;
