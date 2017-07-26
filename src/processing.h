@@ -384,14 +384,14 @@ vector<double> get_final_s_state(
 
     double acceleration = (target_speed - initial_speed) / time_horizon ;
 
-    double max_acceleration = 20.0 ;
+    double max_acceleration = 10.0 ;
     // If acceleration is too large, limit it
     while (std::abs(acceleration) > max_acceleration)
     {
         acceleration *= 0.9 ;
     }
 
-    double max_jerk = 20.0 ;
+    double max_jerk = 10.0 ;
     // If jerk would be too large, limit it
     while(std::abs(acceleration - initial_acceleration) / time_horizon > max_jerk)
     {
@@ -707,6 +707,29 @@ void print_vector(vector<double> &data)
     {
         std::cout << element << std::endl ;
     }
+}
+
+
+bool is_car_going_through_sharp_turn(
+    double car_x, double car_y, const vector<double> &maps_x, const vector<double> &maps_y)
+{
+    int closest_index = ClosestWaypoint(car_x, car_y, maps_x, maps_y) - 2 ;
+
+    double start_x = maps_x[closest_index] ;
+    double start_y = maps_y[closest_index] ;
+
+    double first_x_change = maps_x[closest_index + 2] - start_x ;
+    double first_y_change = maps_y[closest_index + 2] - start_y ;
+
+    int offset = 5 ;
+    double second_x_change = maps_x[closest_index + offset] - start_x ;
+    double second_y_change = maps_y[closest_index + offset] - start_y ;
+
+    double first_angle = std::atan2(first_y_change, first_x_change) ;
+    double second_angle = std::atan2(second_y_change, second_x_change) ;
+
+    double angle_difference = rad2deg(std::abs(first_angle - second_angle)) ;
+    return angle_difference > 12.0 ;
 }
 
 
