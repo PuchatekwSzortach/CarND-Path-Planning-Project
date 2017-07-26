@@ -393,14 +393,14 @@ vector<double> get_final_s_state(
 
     double acceleration = (target_speed - initial_speed) / time_horizon ;
 
-    double max_acceleration = 10.0 ;
+    double max_acceleration = 8.0 ;
     // If acceleration is too large, limit it
     while (std::abs(acceleration) > max_acceleration)
     {
         acceleration *= 0.9 ;
     }
 
-    double max_jerk = 10.0 ;
+    double max_jerk = 8.0 ;
     // If jerk would be too large, limit it
     while(std::abs(acceleration - initial_acceleration) / time_horizon > max_jerk)
     {
@@ -660,7 +660,7 @@ int get_arg_min(vector<double> &values)
 
 bool are_ego_and_vehicle_in_same_lane(double ego_d, double vehicle_d)
 {
-    double half_ego_width = 1.5 ;
+    double half_ego_width = 1.7 ;
 
     double ego_left = ego_d - half_ego_width ;
     double ego_right = ego_d + half_ego_width ;
@@ -691,7 +691,7 @@ bool are_ego_and_vehicle_in_same_lane(double ego_d, double vehicle_d)
 bool will_ego_collide_with_vehicle(
     vector<double> &ego_s_trajectory, vector<double> &ego_d_trajectory,
     double vehicle_s, double vehicle_d, double vehicle_vs, double vehicle_vd, double time_per_step,
-    double safety_s_distance, double safety_d_distance)
+    double front_safety_s_distance, double back_safety_s_distance)
 {
     for(int index = 0 ; index < ego_s_trajectory.size() ; index++)
     {
@@ -703,12 +703,22 @@ bool will_ego_collide_with_vehicle(
         double current_vehicle_s = vehicle_s + (vehicle_vs * time) ;
         double current_vehicle_d = vehicle_d + (vehicle_vd * time) ;
 
-        double s_distance = ego_s - current_vehicle_s ;
-        double d_distance = ego_d - current_vehicle_d ;
+        double s_distance = current_vehicle_s - ego_s ;
 
-        if(std::abs(s_distance) < safety_s_distance && are_ego_and_vehicle_in_same_lane(ego_d, current_vehicle_d))
+        if(are_ego_and_vehicle_in_same_lane(ego_d, current_vehicle_d))
         {
-            return true ;
+            // If vehicle is in front of us
+            if(s_distance > 0 && s_distance < front_safety_s_distance)
+            {
+                return true ;
+            }
+            // Else vehicle is behind us - thus only consider it if are not in our initial lane
+            // as we shouldn't have to worry about cars coming behind us from our current lane - they should break
+            // for us
+            else if(!are_ego_and_vehicle_in_same_lane(ego_d_trajectory[0], ego_d) && std::abs(s_distance) < back_safety_s_distance)
+            {
+                return true ;
+            }
         }
 
     }

@@ -152,12 +152,10 @@ int main()
 
                     if(should_recompute_trajectory)
                     {
-                        std::cout << car_s << std::endl ;
                         last_trajectory_update_time = time_now ;
 
                         if(previous_path_x.size() == 0)
                         {
-                            car_s = 3000 ;
                             trajectories_generator.set_previous_trajectories_from_current_state(car_s, car_d) ;
                         }
 
@@ -176,8 +174,6 @@ int main()
 
                         int index = cost_computer.get_lowest_cost_trajectory_index(trajectories) ;
                         auto trajectory = trajectories[index] ;
-
-                        trajectory.print() ;
 
                         next_x_vals = trajectory.x_trajectory ;
                         next_y_vals = trajectory.y_trajectory ;

@@ -107,13 +107,13 @@ void test_will_ego_collide_with_vehicle_different_lanes()
     double vehicle_vd = 0.0 ;
 
     double time_per_step = 1.0 ;
-    double safety_s_distance = 0.5 ;
-    double safety_d_distance = 0.5 ;
+    double front_safety_s_distance = 0.5 ;
+    double back_safety_s_distance = 0.5 ;
 
     bool expected = false ;
     bool actual = will_ego_collide_with_vehicle(
         s_trajectory, d_trajectory, vehicle_s, vehicle_d, vehicle_vs, vehicle_vd,
-        time_per_step, safety_s_distance, safety_d_distance) ;
+        time_per_step, front_safety_s_distance, back_safety_s_distance) ;
 
     assert(expected == actual) ;
 
@@ -130,13 +130,13 @@ void test_will_ego_collide_with_vehicle_same_lane_collision_speed()
     double vehicle_vd = 0.0 ;
 
     double time_per_step = 1.0 ;
-    double safety_s_distance = 0.5 ;
-    double safety_d_distance = 0.5 ;
+    double front_safety_s_distance = 0.5 ;
+    double back_safety_s_distance = 0.5 ;
 
     bool expected = true ;
     bool actual = will_ego_collide_with_vehicle(
         s_trajectory, d_trajectory, vehicle_s, vehicle_d, vehicle_vs, vehicle_vd,
-        time_per_step, safety_s_distance, safety_d_distance) ;
+        time_per_step, front_safety_s_distance, back_safety_s_distance) ;
 
     assert(expected == actual) ;
 
@@ -154,13 +154,13 @@ void test_will_ego_collide_with_vehicle_same_lane_safe_speed()
     double vehicle_vd = 0.0 ;
 
     double time_per_step = 1.0 ;
-    double safety_s_distance = 0.5 ;
-    double safety_d_distance = 0.5 ;
+    double front_safety_s_distance = 0.5 ;
+    double back_safety_s_distance = 0.5 ;
 
     bool expected = false ;
     bool actual = will_ego_collide_with_vehicle(
         s_trajectory, d_trajectory, vehicle_s, vehicle_d, vehicle_vs, vehicle_vd,
-        time_per_step, safety_s_distance, safety_d_distance) ;
+        time_per_step, front_safety_s_distance, back_safety_s_distance) ;
 
     assert(expected == actual) ;
 
@@ -178,13 +178,13 @@ void test_will_ego_collide_with_vehicle_crossing_lanes_safe_speed()
     double vehicle_vd = 0.0 ;
 
     double time_per_step = 1.0 ;
-    double safety_s_distance = 0.5 ;
-    double safety_d_distance = 0.5 ;
+    double front_safety_s_distance = 0.5 ;
+    double back_safety_s_distance = 0.5 ;
 
     bool expected = false ;
     bool actual = will_ego_collide_with_vehicle(
         s_trajectory, d_trajectory, vehicle_s, vehicle_d, vehicle_vs, vehicle_vd,
-        time_per_step, safety_s_distance, safety_d_distance) ;
+        time_per_step, front_safety_s_distance, back_safety_s_distance) ;
 
     assert(expected == actual) ;
 
@@ -202,13 +202,13 @@ void test_will_ego_collide_with_vehicle_crossing_lanes_collision_speed()
     double vehicle_vd = 0.0 ;
 
     double time_per_step = 1.0 ;
-    double safety_s_distance = 0.5 ;
-    double safety_d_distance = 0.5 ;
+    double front_safety_s_distance = 0.5 ;
+    double back_safety_s_distance = 0.5 ;
 
     bool expected = true ;
     bool actual = will_ego_collide_with_vehicle(
         s_trajectory, d_trajectory, vehicle_s, vehicle_d, vehicle_vs, vehicle_vd,
-        time_per_step, safety_s_distance, safety_d_distance) ;
+        time_per_step, front_safety_s_distance, back_safety_s_distance) ;
 
     assert(expected == actual) ;
 }
