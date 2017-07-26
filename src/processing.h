@@ -626,6 +626,36 @@ int get_arg_min(vector<double> &values)
 }
 
 
+bool are_ego_and_vehicle_in_same_lane(double ego_d, double vehicle_d)
+{
+    double half_ego_width = 1.5 ;
+
+    double ego_left = ego_d - half_ego_width ;
+    double ego_right = ego_d + half_ego_width ;
+
+    // Both in left lane
+    if(vehicle_d < 4.0 && ego_left < 4.0)
+    {
+        return true ;
+    }
+
+    // Both in middle lane
+    if(4.0 < vehicle_d && vehicle_d < 8.0 && ego_right > 4.0 && ego_left < 8.0)
+    {
+        return true ;
+    }
+
+    // Both in right lane
+    if(8.0 < vehicle_d && ego_right > 8.0)
+    {
+        return true ;
+    }
+
+    // Not in the same lane
+    return false ;
+}
+
+
 bool will_ego_collide_with_vehicle(
     vector<double> &ego_s_trajectory, vector<double> &ego_d_trajectory,
     double vehicle_s, double vehicle_d, double vehicle_vs, double vehicle_vd, double time_per_step,
@@ -644,7 +674,7 @@ bool will_ego_collide_with_vehicle(
         double s_distance = ego_s - current_vehicle_s ;
         double d_distance = ego_d - current_vehicle_d ;
 
-        if(std::abs(s_distance) < safety_s_distance && std::abs(d_distance) < safety_d_distance)
+        if(std::abs(s_distance) < safety_s_distance && are_ego_and_vehicle_in_same_lane(ego_d, current_vehicle_d))
         {
             return true ;
         }
@@ -675,6 +705,7 @@ void print_vector(vector<double> &data)
         std::cout << element << std::endl ;
     }
 }
+
 
 
 #endif //PATH_PLANNING_PROCESSING_H

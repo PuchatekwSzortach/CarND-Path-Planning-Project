@@ -154,24 +154,24 @@ int main()
                     {
                         last_trajectory_update_time = time_now ;
 
-                        if(trajectories_generator.previous_x_trajectory.size() < 3)
+                        if(previous_path_x.size() == 0)
                         {
                             trajectories_generator.set_previous_trajectories_from_current_state(
                                 car_x, car_y, car_s, car_d) ;
                         }
 
-                        auto trajectories = trajectories_generator.generate_trajectories(
-                            car_x, car_y, car_s, car_d, previous_path_x, previous_path_y) ;
-
                         vector<vector<double>> sensory_data ;
-
                         for(auto vehicle_data: sensor_fusion)
                         {
                             sensory_data.push_back(vehicle_data) ;
                         }
 
                         CostComputer cost_computer(configuration, sensory_data,
-                            map_waypoints_x, map_waypoints_y, map_waypoints_s, map_waypoints_dx, map_waypoints_dy) ;
+                            map_waypoints_x, map_waypoints_y, map_waypoints_s, map_waypoints_dx, map_waypoints_dy,
+                            trajectories_generator.previous_d_trajectory.back()) ;
+
+                        auto trajectories = trajectories_generator.generate_trajectories(
+                            car_x, car_y, car_s, car_d, previous_path_x, previous_path_y) ;
 
                         int index = cost_computer.get_lowest_cost_trajectory_index(trajectories) ;
                         auto trajectory = trajectories[index] ;

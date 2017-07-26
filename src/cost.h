@@ -23,12 +23,14 @@ class CostComputer
     vector<double> maps_dx ;
     vector<double> maps_dy ;
 
+    double previous_trajectory_final_d ;
+
     double huge_cost ;
 
     CostComputer(
         Configuration configuration, std::vector<std::vector<double>> sensory_data,
         vector<double> &maps_x, vector<double> &maps_y, vector<double> &maps_s,
-        vector<double> &maps_dx, vector<double> &maps_dy)
+        vector<double> &maps_dx, vector<double> &maps_dy, double previous_trajectory_final_d)
     {
         this->configuration = configuration ;
         this->sensory_data = sensory_data ;
@@ -41,6 +43,8 @@ class CostComputer
         this->maps_dy = maps_dy ;
 
         this->huge_cost = 100000 ;
+
+        this->previous_trajectory_final_d = previous_trajectory_final_d ;
     }
 
     int get_lowest_cost_trajectory_index(vector<Trajectory> &trajectories)
@@ -54,14 +58,9 @@ class CostComputer
             double cost = 0 ;
 
             cost += 100.0 * this->get_target_speed_cost(trajectory) ;
-
             cost += this->huge_cost * this->get_speeding_cost(trajectory) ;
-//            cost += this->get_tangential_acceleration_cost(trajectory) ;
-//            cost += this->get_normal_acceleration_cost(trajectory) ;
-//            cost += this->get_sharp_turns_cost(trajectory) ;
-
             cost += this->huge_cost * this->get_safety_cost(trajectory) ;
-            cost += this->get_lane_change_cost(trajectory) ;
+            cost += 5.0 * this->get_previous_trajectory_final_lane_change_cost(trajectory) ;
 
             costs.push_back(cost) ;
 
@@ -105,10 +104,11 @@ class CostComputer
             double vehicle_d_left = std::min(vehicle_d, vehicle_final_d) ;
             double vehicle_d_right = std::max(vehicle_d, vehicle_final_d) ;
 
-            double safety_s_distance = 20.0 ;
-            double safety_d_distance = 3.0 ;
+            double front_safety_s_distance = 2.0 * trajectory.initial_s_state[1] ;
+            double back_safety_s_distance = 10.0 ;
+            double same_lane_d_distance = 3.0 ;
 
-            bool are_we_keeping_lane = ((std::abs(ego_initial_d[0] - ego_final_d[0])) < safety_d_distance) ;
+            bool are_we_keeping_lane = ((std::abs(ego_initial_d[0] - ego_final_d[0])) < same_lane_d_distance) ;
 
             // We only need to look at cars in front of us in our lane
             if(are_we_keeping_lane)
@@ -116,36 +116,37 @@ class CostComputer
                 double start_s = ego_initial_s[0] ;
 
                 // If vehicle is in our lane
-                if(std::abs(vehicle_d - ego_initial_d[0]) < safety_d_distance)
+                if(are_ego_and_vehicle_in_same_lane(ego_initial_d[0], vehicle_d))
                 {
                     // If vehicle is between where we are now and will be at the end of trajectory
-                    if(start_s < vehicle_s && vehicle_s < ego_final_s[0])
+                    if(start_s - back_safety_s_distance < vehicle_s && vehicle_s < ego_final_s[0] + front_safety_s_distance)
                     {
                         // And we risk passing vehicle at the end of trajectory
-                        if(vehicle_final_s < ego_final_s[0] + safety_s_distance)
+                        if(vehicle_final_s < ego_final_s[0] + front_safety_s_distance)
                         {
                             cost += 1.0 ;
                         }
                     }
                 }
             }
-            else // We need to look at cars behind us as well as in all from current lane to destination lane
+            else // We need to look at cars behind us as well
             {
                 // And at all cars that are in lanes from our current lane to final lane
-                double left_d = std::min(ego_initial_d[0], ego_final_d[0]) - safety_d_distance ;
-                double right_d = std::max(ego_initial_d[0], ego_final_d[0]) + safety_d_distance ;
+                double left_d = std::min(ego_initial_d[0], ego_final_d[0]) - same_lane_d_distance ;
+                double right_d = std::max(ego_initial_d[0], ego_final_d[0]) + same_lane_d_distance ;
 
                 // If vehicle is in one of lanes we will cross
                 if(left_d < vehicle_d && vehicle_d < right_d)
                 {
-                    double lane_changing_safety_s_distance = 10.0 ;
-                    double lane_changing_safety_d_distance = 3.0 ;
+                    double lane_changing_front_safety_s_distance = 0.5 * trajectory.initial_s_state[1] ;
+                    double lane_changing_back_safety_s_distance = 10.0 ;
+                    double lane_changing_safety_d_distance = 3.5 ;
 
                     bool will_collide = will_ego_collide_with_vehicle(
                         trajectory.s_trajectory, trajectory.d_trajectory,
                         vehicle_s, vehicle_d, vehicle_sd_speed[0], vehicle_sd_speed[1],
                         this->configuration.time_per_step,
-                        lane_changing_safety_s_distance, lane_changing_safety_d_distance) ;
+                        lane_changing_front_safety_s_distance, lane_changing_safety_d_distance) ;
 
                     if(will_collide)
                     {
@@ -159,11 +160,6 @@ class CostComputer
         }
 
         return cost ;
-    }
-
-    double get_lane_change_cost(Trajectory &trajectory)
-    {
-        return std::abs(trajectory.final_d_state[0] - trajectory.initial_d_state[0]) ;
     }
 
     // Cost for going over speed limit at any point of the trajectory
@@ -203,6 +199,48 @@ class CostComputer
 
         // Check at resolution of four steps
         step_size = 4 ;
+        for(int index = step_size ; index < s_trajectory.size() ; index += step_size)
+        {
+            auto speed = (s_trajectory[index] - s_trajectory[index - step_size]) /
+                (double(step_size) * this->configuration.time_per_step) ;
+
+            if(speed > 0.99 * this->configuration.speed_limit)
+            {
+                cost += 1 ;
+            }
+
+        }
+
+        // Check at resolution of 10 steps
+        step_size = 10 ;
+        for(int index = step_size ; index < s_trajectory.size() ; index += step_size)
+        {
+            auto speed = (s_trajectory[index] - s_trajectory[index - step_size]) /
+                (double(step_size) * this->configuration.time_per_step) ;
+
+            if(speed > 0.99 * this->configuration.speed_limit)
+            {
+                cost += 1 ;
+            }
+
+        }
+
+        // Check at resolution of 20 steps
+        step_size = 20 ;
+        for(int index = step_size ; index < s_trajectory.size() ; index += step_size)
+        {
+            auto speed = (s_trajectory[index] - s_trajectory[index - step_size]) /
+                (double(step_size) * this->configuration.time_per_step) ;
+
+            if(speed > 0.99 * this->configuration.speed_limit)
+            {
+                cost += 1 ;
+            }
+
+        }
+
+        // Check at resolution of 40 steps
+        step_size = 40 ;
         for(int index = step_size ; index < s_trajectory.size() ; index += step_size)
         {
             auto speed = (s_trajectory[index] - s_trajectory[index - step_size]) /
@@ -288,6 +326,12 @@ class CostComputer
 
         double difference_from_line = std::abs(angle_degrees - 180.0) ;
         return difference_from_line * difference_from_line ;
+    }
+
+    double get_previous_trajectory_final_lane_change_cost(Trajectory &trajectory)
+    {
+        double cost = std::abs(trajectory.final_d_state[0] - this->previous_trajectory_final_d) < 1.0 ? 0 : 1 ;
+        return cost ;
     }
 
 } ;
