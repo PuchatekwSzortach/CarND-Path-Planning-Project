@@ -105,12 +105,10 @@ class TrajectoriesGenerator
         this->previous_d_trajectory = d_trajectory ;
     }
 
-    void set_previous_trajectories_from_current_state(double car_x, double car_y, double car_s, double car_d)
+    void set_previous_trajectories_from_current_state(double car_s, double car_d)
     {
         double acceleration = 1.0 ;
         double time_instant = 0 ;
-
-//        car_s = 6000 ;
 
         while(time_instant < this->configuration.trajectory_time)
         {
@@ -181,83 +179,6 @@ class TrajectoriesGenerator
     }
 
     Trajectory generate_trajectory(
-        vector<double> initial_x_trajectory, vector<double> initial_y_trajectory,
-        vector<double> initial_s_trajectory, vector<double> initial_d_trajectory,
-        vector<double> next_segment_initial_s_state, vector<double> final_s_state,
-        vector<double> next_segment_initial_d_state, vector<double> final_d_state,
-        double time_horizon, double time_per_step)
-    {
-        auto s_coefficients = get_jerk_minimizing_trajectory_coefficients(
-            next_segment_initial_s_state, final_s_state, time_horizon) ;
-
-        auto d_coefficients = get_jerk_minimizing_trajectory_coefficients(
-            next_segment_initial_d_state, final_d_state, time_horizon) ;
-
-        vector<double> added_time_steps ;
-
-        // End of previous path already includes a point at our initial state, so add new trajectories
-        // from one instant after that
-        double time_instant = time_per_step ;
-
-        while(time_instant <= time_horizon)
-        {
-            added_time_steps.push_back(time_instant) ;
-            time_instant += time_per_step ;
-        }
-
-        auto added_s_trajectory = evaluate_polynomial_over_vector(s_coefficients, added_time_steps) ;
-        auto added_d_trajectory = evaluate_polynomial_over_vector(d_coefficients, added_time_steps) ;
-
-        auto added_xy_trajectory = convert_frenet_trajectory_to_cartesian_trajectory(
-            added_s_trajectory, added_d_trajectory, this->maps_s, this->maps_x, this->maps_y) ;
-
-        auto added_x_trajectory = added_xy_trajectory[0] ;
-        auto added_y_trajectory = added_xy_trajectory[1] ;
-
-        // Remove last n elements from current trajectory and add them to new trajectory - so we will later smooth over
-        // last 10 elements of old trajectory and added trajectory
-        int elements_count = 10 ;
-        if(initial_x_trajectory.size() > elements_count)
-        {
-            move_n_elements_from_end_of_first_to_beginning_of_second(initial_x_trajectory, added_x_trajectory, elements_count) ;
-            move_n_elements_from_end_of_first_to_beginning_of_second(initial_y_trajectory, added_y_trajectory, elements_count) ;
-            move_n_elements_from_end_of_first_to_beginning_of_second(initial_s_trajectory, added_s_trajectory, elements_count) ;
-            move_n_elements_from_end_of_first_to_beginning_of_second(initial_d_trajectory, added_d_trajectory, elements_count) ;
-
-            for(int index = 0 ; index < elements_count ; ++index)
-            {
-                double time = added_time_steps[0] ;
-                double previous_instant_time = time - time_per_step ;
-                added_time_steps.insert(added_time_steps.begin(), previous_instant_time) ;
-            }
-        }
-
-        auto smooth_s_trajectory = get_smoothed_trajectory(added_time_steps, added_s_trajectory) ;
-        auto smooth_d_trajectory = get_smoothed_trajectory(added_time_steps, added_d_trajectory) ;
-
-        auto smooth_x_trajectory = get_smoothed_trajectory(added_time_steps, added_x_trajectory) ;
-        auto smooth_y_trajectory = get_smoothed_trajectory(added_time_steps, added_y_trajectory) ;
-
-        for(int index = 0 ; index < added_s_trajectory.size() ; ++index)
-        {
-            initial_x_trajectory.push_back(smooth_x_trajectory[index]) ;
-            initial_y_trajectory.push_back(smooth_y_trajectory[index]) ;
-
-            initial_s_trajectory.push_back(smooth_s_trajectory[index]) ;
-            initial_d_trajectory.push_back(smooth_d_trajectory[index]) ;
-        }
-
-        auto initial_s_state = get_s_state_at_trajectory_start(initial_s_trajectory, time_per_step) ;
-        auto initial_d_state = get_d_state_at_trajectory_start(initial_d_trajectory, time_per_step) ;
-
-        Trajectory trajectory(
-            initial_x_trajectory, initial_y_trajectory, initial_s_trajectory, initial_d_trajectory,
-            initial_s_state, final_s_state, initial_d_state, final_d_state) ;
-
-        return trajectory ;
-    }
-
-    Trajectory generate_trajectory_two(
         vector<double> initial_x_trajectory, vector<double> initial_y_trajectory,
         vector<double> initial_s_trajectory, vector<double> initial_d_trajectory,
         vector<double> next_segment_initial_s_state, vector<double> final_s_state,
@@ -352,8 +273,46 @@ class TrajectoriesGenerator
             initial_x_trajectory, initial_y_trajectory, initial_s_trajectory, initial_d_trajectory,
             initial_s_state, final_s_state, initial_d_state, final_d_state) ;
 
+        if(trajectory.s_trajectory.back() > this->configuration.s_end)
+        {
+            trajectory = get_trajectory_adjusted_for_going_over_lap_end(trajectory) ;
+        }
+
         return trajectory ;
 
+    }
+
+
+    Trajectory get_trajectory_adjusted_for_going_over_lap_end(Trajectory trajectory)
+    {
+        vector<double> s_trajectory ;
+
+        for(int index = 0 ; index < trajectory.s_trajectory.size() ; ++index)
+        {
+            double s = std::fmod(trajectory.s_trajectory[index], this->configuration.s_end) ;
+            s_trajectory.push_back(s) ;
+        }
+
+        auto xy_trajectories = convert_frenet_trajectory_to_cartesian_trajectory(
+            s_trajectory, trajectory.d_trajectory, this->maps_s, this->maps_x, this->maps_y) ;
+
+        vector<double> trajectory_time ;
+        double time_instant = 0 ;
+        for(int index = 0 ; index < s_trajectory.size() ; ++index)
+        {
+            time_instant += this->configuration.time_per_step ;
+            trajectory_time.push_back(time_instant) ;
+        }
+
+        auto smooth_x_trajectory = get_smoothed_trajectory(trajectory_time, xy_trajectories[0]) ;
+        auto smooth_y_trajectory = get_smoothed_trajectory(trajectory_time, xy_trajectories[1]) ;
+
+        Trajectory adjusted_trajectory(
+            smooth_x_trajectory, smooth_y_trajectory, s_trajectory, trajectory.d_trajectory,
+            trajectory.initial_s_state, trajectory.final_s_state,
+            trajectory.initial_d_state, trajectory.final_d_state) ;
+
+        return adjusted_trajectory ;
     }
 
 
@@ -366,6 +325,8 @@ class TrajectoriesGenerator
         // Get index of closest point in saved trajectory to current car position
         double current_position_index = get_index_of_closest_previous_x_trajectory_point(
             car_x, car_y, this->previous_x_trajectory, this->previous_y_trajectory) ;
+
+//        double current_position_index = get_index_of_closest_s_trajectory_point(car_s, this->previous_s_trajectory) ;
 
         vector<double> initial_x_trajectory ;
         vector<double> initial_y_trajectory ;
@@ -404,7 +365,7 @@ class TrajectoriesGenerator
         {
             for(auto final_d_state: final_d_states)
             {
-                auto trajectory = this->generate_trajectory_two(
+                auto trajectory = this->generate_trajectory(
                     initial_x_trajectory, initial_y_trajectory, initial_s_trajectory, initial_d_trajectory,
                     next_segment_initial_s_state, final_s_state, next_segment_initial_d_state, final_d_state,
                     time_horizon, time_per_step) ;
