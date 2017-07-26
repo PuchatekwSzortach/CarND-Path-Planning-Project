@@ -381,18 +381,18 @@ vector<double> get_final_s_state(
 
     double acceleration = (target_speed - initial_speed) / time_horizon ;
 
-    double max_acceleration = 5.0 ;
+    double max_acceleration = 7.0 ;
     // If acceleration is too large, limit it
     while (std::abs(acceleration) > max_acceleration)
     {
         acceleration *= 0.9 ;
     }
 
-    double max_jerk = 4.0 ;
+    double max_jerk = 5.0 ;
     // If jerk would be too large, limit it
     while(std::abs(acceleration - initial_acceleration) / time_horizon > max_jerk)
     {
-        acceleration = (0.8 * acceleration) + (0.2 * initial_acceleration) ;
+        acceleration = (0.9 * acceleration) + (0.1 * initial_acceleration) ;
     }
 
     // Now compute position and velocity of final state

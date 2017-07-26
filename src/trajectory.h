@@ -107,15 +107,23 @@ class TrajectoriesGenerator
 
     void set_previous_trajectories_from_current_state(double car_x, double car_y, double car_s, double car_d)
     {
-        for(int index = 0 ; index < 20 ; ++index)
-        {
-            this->previous_x_trajectory.push_back(car_x) ;
-            this->previous_y_trajectory.push_back(car_y) ;
+        double acceleration = 1.0 ;
+        double time_instant = 0 ;
 
-            this->previous_s_trajectory.push_back(car_s) ;
+        while(time_instant < this->configuration.trajectory_time)
+        {
+            double s = car_s + (0.5 * acceleration * time_instant * time_instant) ;
+            time_instant += this->configuration.time_per_step ;
+
+            this->previous_s_trajectory.push_back(s) ;
             this->previous_d_trajectory.push_back(car_d) ;
         }
 
+        auto xy_trajectory = convert_frenet_trajectory_to_cartesian_trajectory(
+            this->previous_s_trajectory, this->previous_d_trajectory, this->maps_s, this->maps_x, this->maps_y) ;
+
+        this->previous_x_trajectory = xy_trajectory[0] ;
+        this->previous_y_trajectory = xy_trajectory[1] ;
     }
 
     // Generates multiple candidate final s states
