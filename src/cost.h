@@ -49,21 +49,21 @@ class CostComputer
 
     int get_lowest_cost_trajectory_index(vector<Trajectory> &trajectories)
     {
-        std::cout << "\n\nGetting costs" << std::endl ;
+//        std::cout << "\n\nGetting costs" << std::endl ;
         vector<double> costs ;
 
         for(int index = 0 ; index < trajectories.size() ; ++index)
         {
             auto trajectory = trajectories[index] ;
-            trajectory.print() ;
+//            trajectory.print() ;
             double cost = 0 ;
 
-            cost += 50.0 * this->get_target_speed_cost(trajectory) ;
+            cost += 100.0 * this->get_target_speed_cost(trajectory) ;
             cost += this->huge_cost * this->get_speeding_cost(trajectory) ;
             cost += this->huge_cost * this->get_safety_cost(trajectory) ;
             cost += 5.0 * this->get_previous_trajectory_final_lane_change_cost(trajectory) ;
 
-            std::cout << "\tCost: " << cost << std::endl ;
+//            std::cout << "\tCost: " << cost << std::endl ;
 
             costs.push_back(cost) ;
 
@@ -102,7 +102,7 @@ class CostComputer
                 this->maps_x, this->maps_y, this->maps_dx, this->maps_dy) ;
 
             double mean_velocity = 0.5 * (trajectory.initial_s_state[1] + trajectory.final_s_state[1]) ;
-            double safety_s_distance = 0.2 * std::pow(mean_velocity, 1.5) ;
+            double safety_s_distance = 0.25 * std::pow(mean_velocity, 1.5) ;
             double safety_d_distance = 3.5 ;
 
             bool will_collide = will_ego_collide_with_vehicle(
@@ -127,6 +127,8 @@ class CostComputer
     {
         auto s_trajectory = trajectory.s_trajectory ;
 
+        double cost = 0 ;
+
         // Check at resolution of one step
         int step_size = 1 ;
         for(int index = step_size ; index < s_trajectory.size() ; index += step_size)
@@ -136,7 +138,7 @@ class CostComputer
 
             if(speed > 0.99 * this->configuration.speed_limit)
             {
-                return 1.0 ;
+                cost += 1.0 ;
             }
 
         }
@@ -150,7 +152,7 @@ class CostComputer
 
             if(speed > 0.99 * this->configuration.speed_limit)
             {
-                return 1.0 ;
+                cost += 1.0 ;
             }
 
         }
@@ -164,7 +166,8 @@ class CostComputer
 
             if(speed > 0.99 * this->configuration.speed_limit)
             {
-                return 1.0 ;
+                cost += 1.0 ;
+
             }
 
         }
@@ -178,7 +181,7 @@ class CostComputer
 
             if(speed > 0.99 * this->configuration.speed_limit)
             {
-                return 1.0 ;
+                cost += 1.0 ;
             }
 
         }
@@ -192,7 +195,7 @@ class CostComputer
 
             if(speed > 0.99 * this->configuration.speed_limit)
             {
-                return 1.0 ;
+                cost += 1.0 ;
             }
 
         }
@@ -206,12 +209,12 @@ class CostComputer
 
             if(speed > 0.99 * this->configuration.speed_limit)
             {
-                return 1.0 ;
+                cost += 1.0 ;
             }
 
         }
 
-        return 0 ;
+        return cost ;
 
     }
 
