@@ -42,25 +42,28 @@ class CostComputer
         this->maps_dx = maps_dx ;
         this->maps_dy = maps_dy ;
 
-        this->huge_cost = 100000 ;
+        this->huge_cost = 1000 ;
 
         this->previous_trajectory_final_d = previous_trajectory_final_d ;
     }
 
     int get_lowest_cost_trajectory_index(vector<Trajectory> &trajectories)
     {
+        std::cout << "\n\nGetting costs" << std::endl ;
         vector<double> costs ;
 
         for(int index = 0 ; index < trajectories.size() ; ++index)
         {
             auto trajectory = trajectories[index] ;
-//            trajectory.print() ;
+            trajectory.print() ;
             double cost = 0 ;
 
-            cost += 100.0 * this->get_target_speed_cost(trajectory) ;
+            cost += 50.0 * this->get_target_speed_cost(trajectory) ;
             cost += this->huge_cost * this->get_speeding_cost(trajectory) ;
             cost += this->huge_cost * this->get_safety_cost(trajectory) ;
             cost += 5.0 * this->get_previous_trajectory_final_lane_change_cost(trajectory) ;
+
+            std::cout << "\tCost: " << cost << std::endl ;
 
             costs.push_back(cost) ;
 
@@ -76,13 +79,13 @@ class CostComputer
 
     double get_safety_cost(Trajectory &trajectory)
     {
-        double cost = 0 ;
-
         auto ego_initial_s = trajectory.initial_s_state ;
         auto ego_final_s = trajectory.final_s_state ;
 
         auto ego_initial_d = trajectory.initial_d_state ;
         auto ego_final_d = trajectory.final_d_state ;
+
+        double cost = 0 ;
 
         for(auto vehicle_data: sensory_data)
         {
@@ -98,63 +101,20 @@ class CostComputer
                 vehicle_x, vehicle_y, vehicle_vx, vehicle_vy,
                 this->maps_x, this->maps_y, this->maps_dx, this->maps_dy) ;
 
-            double vehicle_final_s = vehicle_s + (vehicle_sd_speed[0] * this->configuration.trajectory_time) ;
-            double vehicle_final_d = vehicle_d + (vehicle_sd_speed[1] * this->configuration.trajectory_time) ;
+            double mean_velocity = 0.5 * (trajectory.initial_s_state[1] + trajectory.final_s_state[1]) ;
+            double safety_s_distance = 0.2 * std::pow(mean_velocity, 1.5) ;
+            double safety_d_distance = 3.5 ;
 
-            double vehicle_d_left = std::min(vehicle_d, vehicle_final_d) ;
-            double vehicle_d_right = std::max(vehicle_d, vehicle_final_d) ;
+            bool will_collide = will_ego_collide_with_vehicle(
+                trajectory.s_trajectory, trajectory.d_trajectory,
+                vehicle_s, vehicle_d, vehicle_sd_speed[0], vehicle_sd_speed[1],
+                this->configuration.time_per_step,
+                safety_s_distance, safety_d_distance) ;
 
-            double front_safety_s_distance = 2.0 * trajectory.initial_s_state[1] ;
-            double back_safety_s_distance = 10.0 ;
-            double same_lane_d_distance = 3.0 ;
-
-            bool are_we_keeping_lane = ((std::abs(ego_initial_d[0] - ego_final_d[0])) < same_lane_d_distance) ;
-
-            // We only need to look at cars in front of us in our lane
-            if(are_we_keeping_lane)
+            if(will_collide)
             {
-                double start_s = ego_initial_s[0] ;
-
-                // If vehicle is in our lane
-                if(are_ego_and_vehicle_in_same_lane(ego_initial_d[0], vehicle_d))
-                {
-                    // If vehicle is between where we are now and will be at the end of trajectory
-                    if(start_s - back_safety_s_distance < vehicle_s && vehicle_s < ego_final_s[0] + front_safety_s_distance)
-                    {
-                        // And we risk passing vehicle at the end of trajectory
-                        if(vehicle_final_s < ego_final_s[0] + front_safety_s_distance)
-                        {
-                            cost += 1.0 ;
-                        }
-                    }
-                }
-            }
-            else // We need to look at cars behind us as well
-            {
-                // And at all cars that are in lanes from our current lane to final lane
-                double left_d = std::min(ego_initial_d[0], ego_final_d[0]) - same_lane_d_distance ;
-                double right_d = std::max(ego_initial_d[0], ego_final_d[0]) + same_lane_d_distance ;
-
-                // If vehicle is in one of lanes we will cross
-                if(left_d < vehicle_d && vehicle_d < right_d)
-                {
-                    double lane_changing_front_safety_s_distance = 0.5 * trajectory.initial_s_state[1] ;
-                    double lane_changing_back_safety_s_distance = 10.0 ;
-                    double lane_changing_safety_d_distance = 3.5 ;
-
-                    bool will_collide = will_ego_collide_with_vehicle(
-                        trajectory.s_trajectory, trajectory.d_trajectory,
-                        vehicle_s, vehicle_d, vehicle_sd_speed[0], vehicle_sd_speed[1],
-                        this->configuration.time_per_step,
-                        lane_changing_front_safety_s_distance, lane_changing_safety_d_distance) ;
-
-                    if(will_collide)
-                    {
-                        // Arbitrary high collision cost
-                        cost += 1.0 ;
-                    }
-
-                }
+                // Collision cost proportional to speed
+                cost += trajectory.final_s_state[1] ;
             }
 
         }
@@ -165,8 +125,6 @@ class CostComputer
     // Cost for going over speed limit at any point of the trajectory
     double get_speeding_cost(Trajectory &trajectory)
     {
-        double cost = 0 ;
-
         auto s_trajectory = trajectory.s_trajectory ;
 
         // Check at resolution of one step
@@ -178,7 +136,7 @@ class CostComputer
 
             if(speed > 0.99 * this->configuration.speed_limit)
             {
-                cost += 1 ;
+                return 1.0 ;
             }
 
         }
@@ -192,7 +150,7 @@ class CostComputer
 
             if(speed > 0.99 * this->configuration.speed_limit)
             {
-                cost += 1 ;
+                return 1.0 ;
             }
 
         }
@@ -206,7 +164,7 @@ class CostComputer
 
             if(speed > 0.99 * this->configuration.speed_limit)
             {
-                cost += 1 ;
+                return 1.0 ;
             }
 
         }
@@ -220,7 +178,7 @@ class CostComputer
 
             if(speed > 0.99 * this->configuration.speed_limit)
             {
-                cost += 1 ;
+                return 1.0 ;
             }
 
         }
@@ -234,7 +192,7 @@ class CostComputer
 
             if(speed > 0.99 * this->configuration.speed_limit)
             {
-                cost += 1 ;
+                return 1.0 ;
             }
 
         }
@@ -248,12 +206,12 @@ class CostComputer
 
             if(speed > 0.99 * this->configuration.speed_limit)
             {
-                cost += 1 ;
+                return 1.0 ;
             }
 
         }
 
-        return cost ;
+        return 0 ;
 
     }
 

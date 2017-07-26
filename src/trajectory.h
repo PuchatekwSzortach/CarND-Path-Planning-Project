@@ -136,9 +136,8 @@ class TrajectoriesGenerator
         double initial_speed = initial_s_state[1] ;
         double initial_acceleration = initial_s_state[2] ;
 
-        vector<double> fractions {1.0, 0.75, 0.5, 0.25} ;
-//        vector<double> fractions {1.0} ;
-
+        vector<double> fractions {1.0, 0.75, 0.5} ;
+//        vector<double> fractions {1.0, 0.25} ;
 
         vector<double> speed_values ;
         for(double fraction: fractions)

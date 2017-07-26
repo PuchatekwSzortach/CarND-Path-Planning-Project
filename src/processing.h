@@ -381,14 +381,14 @@ vector<double> get_final_s_state(
 
     double acceleration = (target_speed - initial_speed) / time_horizon ;
 
-    double max_acceleration = 7.0 ;
+    double max_acceleration = 10.0 ;
     // If acceleration is too large, limit it
     while (std::abs(acceleration) > max_acceleration)
     {
         acceleration *= 0.9 ;
     }
 
-    double max_jerk = 5.0 ;
+    double max_jerk = 20.0 ;
     // If jerk would be too large, limit it
     while(std::abs(acceleration - initial_acceleration) / time_horizon > max_jerk)
     {
@@ -423,7 +423,7 @@ vector<double> get_final_d_state(
 
 //    std::cout << "Initial final_acceleration " << final_acceleration << std::endl ;
 
-    double max_acceleration = 3.0 ;
+    double max_acceleration = 5.0 ;
     // If acceleration is too large, limit it
     while (std::abs(final_acceleration) > max_acceleration)
     {
@@ -432,7 +432,7 @@ vector<double> get_final_d_state(
 
 //    std::cout << "After max acceleration check: " << final_acceleration << std::endl ;
 
-    double max_jerk = 2.0 ;
+    double max_jerk = 5.0 ;
     // If jerk would be too large, limit it
     while(std::abs(final_acceleration - initial_acceleration) / time_horizon > max_jerk)
     {
