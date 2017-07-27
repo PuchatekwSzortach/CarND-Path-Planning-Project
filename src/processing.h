@@ -421,18 +421,18 @@ vector<double> get_final_s_state(
 
     double acceleration = (target_speed - initial_speed) / time_horizon ;
 
-    double max_acceleration = 8.0 ;
+    double max_acceleration = 9.0 ;
     // If acceleration is too large, limit it
     while (std::abs(acceleration) > max_acceleration)
     {
-        acceleration *= 0.9 ;
+        acceleration *= 0.95 ;
     }
 
-    double max_jerk = 8.0 ;
+    double max_jerk = 9.0 ;
     // If jerk would be too large, limit it
     while(std::abs(acceleration - initial_acceleration) / time_horizon > max_jerk)
     {
-        acceleration = (0.9 * acceleration) + (0.1 * initial_acceleration) ;
+        acceleration = (0.95 * acceleration) + (0.05 * initial_acceleration) ;
     }
 
     // Now compute position and velocity of final state
@@ -762,8 +762,21 @@ bool will_ego_collide_with_vehicle(
             }
             else // We are changing lanes
             {
-                // If vehicle is behind us
-                if(vehicle_s < ego_initial_s)
+                if(vehicle_s > ego_initial_s) // Vehicle is in front of us
+                {
+                    // If moving faster than us
+                    if(vehicle_vs > ego_maximum_speed && std::abs(s_distance) < back_safety_s_distance)
+                    {
+                        return true ;
+                    }
+                    // Moving slower than us, use larger safety buffer
+                    else if(std::abs(s_distance) < front_safety_s_distance)
+                    {
+                        return true ;
+                    }
+                }
+                // If vehicle is behind us and in a different lane
+                else if(!are_ego_and_vehicle_in_same_lane(ego_d, vehicle_d))
                 {
                     // If vehicle is slower than us, use smaller safety buffer
                     if(vehicle_vs < ego_minimum_speed && std::abs(s_distance) < back_safety_s_distance)
@@ -773,22 +786,6 @@ bool will_ego_collide_with_vehicle(
                     else if(std::abs(s_distance) < front_safety_s_distance)
                     {
                         return true ;
-                    }
-                }
-                else // Vehicle is in front of us
-                {
-
-                    // If moving faster than us
-                    if(vehicle_vs > ego_maximum_speed && std::abs(s_distance) < back_safety_s_distance)
-                    {
-                        return true ;
-                    }
-                    else // Moving slower than us, use larger safety buffer
-                    {
-                        if(std::abs(s_distance) < front_safety_s_distance)
-                        {
-                            return true ;
-                        }
                     }
                 }
             }
