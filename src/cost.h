@@ -109,8 +109,8 @@ class CostComputer
                 vehicle_x, vehicle_y, vehicle_vx, vehicle_vy,
                 this->maps_x, this->maps_y, this->maps_dx, this->maps_dy) ;
 
-            double front_safety_s_distance = 10.0 ;
-            double back_safety_s_distance = 8.0 ;
+            double front_safety_s_distance = 11.0 ;
+            double back_safety_s_distance = 9.0 ;
 
             bool will_collide = will_ego_collide_with_vehicle(
                 trajectory.s_trajectory, trajectory.d_trajectory, trajectory.initial_s_state[1], trajectory.final_s_state[1],
@@ -137,7 +137,7 @@ class CostComputer
         auto ego_final_d = trajectory.final_d_state ;
 
         double front_safety_s_distance = 1.0 * std::pow(this->configuration.target_speed, 1.2) ;
-        double back_safety_s_distance = 0.5 * std::pow(this->configuration.target_speed, 1.2) ;
+        double back_safety_s_distance = 0.7 * std::pow(this->configuration.target_speed, 1.2) ;
 
         double cost = 0 ;
 

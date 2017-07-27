@@ -151,10 +151,6 @@ class TrajectoriesGenerator
 
         for(auto speed: speed_values)
         {
-//
-//            vector<double> get_final_s_state(
-//            vector<double> &initial_s_state, car_x, car_y, const vector<double> &maps_x, const vector<double> &maps_y,
-//            double target_speed, double time_horizon, double time_between_steps)
 
             auto final_state = get_final_s_state(
                 initial_s_state, this->previous_x_trajectory[0], this->previous_y_trajectory[0],
@@ -298,16 +294,26 @@ class TrajectoriesGenerator
     {
         vector<double> s_trajectory ;
 
+        int s_flip_index = 0 ;
+        bool s_flipped = false ;
+
         for(int index = 0 ; index < trajectory.s_trajectory.size() ; ++index)
         {
             double s = std::fmod(trajectory.s_trajectory[index], this->configuration.s_end) ;
+
+            if(!s_flipped && std::abs(s - trajectory.s_trajectory[index]) > 0.1)
+            {
+                s_flip_index = index ;
+                s_flipped = true ;
+            }
+
             s_trajectory.push_back(s) ;
         }
 
         auto xy_trajectories = convert_frenet_trajectory_to_cartesian_trajectory(
             s_trajectory, trajectory.d_trajectory, this->maps_s, this->maps_x, this->maps_y) ;
 
-        int split_index = 20 ;
+        int split_index = s_flip_index - 1 ;
         vector<double> first_segment_x ;
         vector<double> first_segment_y ;
 
