@@ -199,7 +199,7 @@ bool is_car_going_through_sharp_turn(
     double second_angle = std::atan2(second_y_change, second_x_change) ;
 
     double angle_difference = rad2deg(std::abs(first_angle - second_angle)) ;
-    return angle_difference > 10.0 ;
+    return angle_difference > 8.0 ;
 }
 
 
@@ -417,7 +417,7 @@ vector<double> get_final_s_state(
     double initial_acceleration = initial_s_state[2] ;
 
     // If we are going through a sharp turn, decrease target speed a bit
-    target_speed = is_car_going_through_sharp_turn(car_x, car_y, maps_x, maps_y) ? target_speed - 5.0 : target_speed ;
+    target_speed = is_car_going_through_sharp_turn(car_x, car_y, maps_x, maps_y) ? target_speed - 4.0 : target_speed ;
 
     double acceleration = (target_speed - initial_speed) / time_horizon ;
 
@@ -746,9 +746,18 @@ bool will_ego_collide_with_vehicle(
             if(are_ego_and_vehicle_in_same_lane(ego_initial_d, ego_final_d))
             {
                 // Only look at vehicles in front of us
-                if(vehicle_s > ego_initial_s && std::abs(s_distance) < front_safety_s_distance)
+                if(vehicle_s > ego_initial_s)
                 {
-                    return true ;
+                    // If vehicle is moving faster than us, allow smaller safety distance
+                    if(vehicle_vs > ego_maximum_speed && std::abs(s_distance) < back_safety_s_distance)
+                    {
+                        return true ;
+                    }
+                    else if(std::abs(s_distance) < front_safety_s_distance)
+                    {
+                        reture true ;
+                    }
+
                 }
             }
             else // We are changing lanes

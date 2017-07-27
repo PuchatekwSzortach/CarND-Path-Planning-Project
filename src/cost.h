@@ -62,7 +62,6 @@ class CostComputer
             double collision_cost = this->huge_cost * this->get_collision_cost(trajectory) ;
             double following_distance_cost = 2.0 *this->get_following_distance_cost(trajectory) ;
             double final_lane_change_cost = 0.1 * this->get_previous_trajectory_final_lane_change_cost(trajectory) ;
-//            double sharp_turn_speeding_cost = 105.0 * this->get_sharp_turn_speeding_cost(trajectory) ;
 
             std::cout << "\ttarget_speed_cost: " << target_speed_cost << ", collision_cost: " << collision_cost
                 << ", following_distance_cost: " << following_distance_cost << ", \n\tfinal_lane_change_cost: "
@@ -152,7 +151,7 @@ class CostComputer
                 vehicle_x, vehicle_y, vehicle_vx, vehicle_vy,
                 this->maps_x, this->maps_y, this->maps_dx, this->maps_dy) ;
 
-            double front_safety_s_distance = 1.2 * this->configuration.target_speed ;
+            double front_safety_s_distance = 1.0 * this->configuration.target_speed ;
             double back_safety_s_distance = 0.3 * this->configuration.target_speed ;
 
             cost += this->get_ego_following_distance_to_vehicle_cost(
@@ -191,7 +190,6 @@ class CostComputer
             double time = this->configuration.time_per_step * double(index) ;
 
             double current_vehicle_s = vehicle_s + (vehicle_vs * time) ;
-            double current_vehicle_d = vehicle_d + (vehicle_vd * time) ;
 
             double s_distance = current_vehicle_s - ego_s ;
 
@@ -202,9 +200,18 @@ class CostComputer
                 if(are_ego_and_vehicle_in_same_lane(ego_initial_d, ego_final_d))
                 {
                     // Only look at vehicles in front of us
-                    if(vehicle_s > ego_initial_s && std::abs(s_distance) < front_safety_s_distance)
+                    if(vehicle_s > ego_initial_s)
                     {
-                        cost += front_safety_s_distance / std::abs(s_distance) ;
+                        // If vehicle is moving faster than us, allow smaller safety distance
+                        if(vehicle_vs > ego_maximum_speed && std::abs(s_distance) < back_safety_s_distance)
+                        {
+                            cost += back_safety_s_distance / std::abs(s_distance) ;
+                        }
+                        else if(std::abs(s_distance) < front_safety_s_distance)
+                        {
+                            cost += front_safety_s_distance / std::abs(s_distance) ;
+                        }
+
                     }
                 }
                 else // We are changing lanes
@@ -218,7 +225,7 @@ class CostComputer
                             cost += back_safety_s_distance / std::abs(s_distance) ;
                         }
                     }
-                    else // Else check with larger safety buffer
+                    else
                     {
 
                         // If vehicle is ahead of us and moving faster than us
@@ -244,20 +251,6 @@ class CostComputer
         }
         return cost ;
     }
-
-//    double get_sharp_turn_speeding_cost(Trajectory &trajectory)
-//    {
-//        double cost = 0 ;
-//
-//        if(is_car_going_through_sharp_turn(
-//            trajectory.x_trajectory.front(), trajectory.y_trajectory.front(), this->maps_x, this->maps_y) )
-//        {
-//            double final_speed = trajectory.final_s_state[1] ;
-//            cost += std::abs(configuration.target_speed - 10.0 - final_speed) / configuration.target_speed ;
-//        }
-//
-//        return cost ;
-//    }
 
 } ;
 
