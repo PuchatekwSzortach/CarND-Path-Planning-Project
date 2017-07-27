@@ -61,13 +61,14 @@ class CostComputer
             double target_speed_cost = 100.0 * this->get_target_speed_cost(trajectory) ;
             double collision_cost = this->huge_cost * this->get_collision_cost(trajectory) ;
             double following_distance_cost = 2.0 *this->get_following_distance_cost(trajectory) ;
-            double final_lane_change_cost = 0.1 * this->get_previous_trajectory_final_lane_change_cost(trajectory) ;
+            double final_lane_change_cost = 5.0 * this->get_previous_trajectory_final_lane_change_cost(trajectory) ;
+            double speeding_cost = this->huge_cost * this->get_speeding_cost(trajectory) ;
 
             std::cout << "\ttarget_speed_cost: " << target_speed_cost << ", collision_cost: " << collision_cost
                 << ", following_distance_cost: " << following_distance_cost << ", \n\tfinal_lane_change_cost: "
-                << final_lane_change_cost ;
+                << final_lane_change_cost << ", speeding cost: " << speeding_cost << std::endl ;
 
-            cost = target_speed_cost + collision_cost + following_distance_cost + final_lane_change_cost ;
+            cost = target_speed_cost + collision_cost + following_distance_cost + final_lane_change_cost + speeding_cost;
 
             std::cout << "\tCost: " << cost << std::endl ;
 
@@ -109,7 +110,7 @@ class CostComputer
                 this->maps_x, this->maps_y, this->maps_dx, this->maps_dy) ;
 
             double front_safety_s_distance = 10.0 ;
-            double back_safety_s_distance = 5.0 ;
+            double back_safety_s_distance = 8.0 ;
 
             bool will_collide = will_ego_collide_with_vehicle(
                 trajectory.s_trajectory, trajectory.d_trajectory, trajectory.initial_s_state[1], trajectory.final_s_state[1],
@@ -216,28 +217,29 @@ class CostComputer
                 }
                 else // We are changing lanes
                 {
-                    // If vehicle is behind us and slower than us, check distance with smaller safety buffer
-                    if(vehicle_s < ego_initial_s && vehicle_vs < ego_minimum_speed)
+                    // If vehicle is behind us
+                    if(vehicle_s < ego_initial_s)
                     {
-                        // Check distance with smaller safety buffer
-                        if(std::abs(s_distance) < back_safety_s_distance)
+                        // If vehicle is slower than us, use smaller safety buffer
+                        if(vehicle_vs < ego_minimum_speed && std::abs(s_distance) < back_safety_s_distance)
                         {
                             cost += back_safety_s_distance / std::abs(s_distance) ;
                         }
+                        else if(std::abs(s_distance) < front_safety_s_distance)
+                        {
+                            cost += front_safety_s_distance / std::abs(s_distance) ;
+                        }
                     }
-                    else
+                    else // Vehicle is in front of us
                     {
 
-                        // If vehicle is ahead of us and moving faster than us
-                        if(vehicle_s > ego_initial_s && vehicle_vs > ego_maximum_speed)
+                        // If moving faster than us
+                        if(vehicle_vs > ego_maximum_speed && std::abs(s_distance) < back_safety_s_distance)
                         {
-                            // Check distance with smaller safety buffer
-                            if(std::abs(s_distance) < back_safety_s_distance)
-                            {
-                                cost += back_safety_s_distance / std::abs(s_distance) ;
-                            }
+                            cost += back_safety_s_distance / std::abs(s_distance) ;
+
                         }
-                        else // Vehicle might be ahead of us moving slow or behind us moving fast - exercise caution
+                        else // Moving slower than us, use larger safety buffer
                         {
                             if(std::abs(s_distance) < front_safety_s_distance)
                             {
@@ -249,6 +251,26 @@ class CostComputer
             }
 
         }
+        return cost ;
+    }
+
+    double get_speeding_cost(
+        Trajectory &trajectory)
+    {
+        double cost = 0 ;
+
+        auto s_trajectory = trajectory.s_trajectory ;
+
+        for(int index = 1 ; index < s_trajectory.size() ; ++index)
+        {
+            double speed = (s_trajectory[index] - s_trajectory[index - 1]) / this->configuration.time_per_step ;
+
+            if(speed > 0.95 * this->configuration.speed_limit)
+            {
+                cost +=1 ;
+            }
+        }
+
         return cost ;
     }
 

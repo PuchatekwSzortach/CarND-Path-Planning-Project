@@ -688,7 +688,7 @@ int get_arg_min(vector<double> &values)
 
 bool are_ego_and_vehicle_in_same_lane(double ego_d, double vehicle_d)
 {
-    double half_ego_width = 1.49 ;
+    double half_ego_width = 1.3 ;
 
     double ego_left = ego_d - half_ego_width ;
     double ego_right = ego_d + half_ego_width ;
@@ -755,41 +755,41 @@ bool will_ego_collide_with_vehicle(
                     }
                     else if(std::abs(s_distance) < front_safety_s_distance)
                     {
-                        reture true ;
+                        return true ;
                     }
 
                 }
             }
             else // We are changing lanes
             {
-                // If vehicle is behind us and slower than us, check distance with smaller safety buffer
-                if(vehicle_s < ego_initial_s && vehicle_vs < ego_minimum_speed)
+                // If vehicle is behind us
+                if(vehicle_s < ego_initial_s)
                 {
-                    // Check distance with smaller safety buffer
-                    if(std::abs(s_distance) < back_safety_s_distance)
+                    // If vehicle is slower than us, use smaller safety buffer
+                    if(vehicle_vs < ego_minimum_speed && std::abs(s_distance) < back_safety_s_distance)
+                    {
+                        return true ;
+                    }
+                    else if(std::abs(s_distance) < front_safety_s_distance)
                     {
                         return true ;
                     }
                 }
-                else
+                else // Vehicle is in front of us
                 {
-                    // If vehicle is ahead of us and moving faster than us
-                    if(vehicle_s > ego_initial_s && vehicle_vs > ego_maximum_speed)
+
+                    // If moving faster than us
+                    if(vehicle_vs > ego_maximum_speed && std::abs(s_distance) < back_safety_s_distance)
                     {
-                        // Check distance with smaller safety buffer
-                        if(std::abs(s_distance) < back_safety_s_distance)
-                        {
-                            return true ;
-                        }
+                        return true ;
                     }
-                    else // Vehicle might be ahead of us moving slow or behind us moving fast - exercise caution
+                    else // Moving slower than us, use larger safety buffer
                     {
                         if(std::abs(s_distance) < front_safety_s_distance)
                         {
                             return true ;
                         }
                     }
-
                 }
             }
         }
